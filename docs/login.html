@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I-llumin-A — Login with TikTok</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%23000'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-size='52' font-family='Arial,sans-serif' font-weight='bold' fill='%23f5a623'%3EIA%3C/text%3E%3C/svg%3E">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #fff; font-family: Arial, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .card { background: #111; border: 1px solid #222; border-radius: 20px; padding: 40px 36px; max-width: 440px; width: 100%; text-align: center; }
+  .logo { background: #000; color: #f5a623; font-weight: bold; font-size: 1.1rem; padding: 10px 18px; border-radius: 10px; letter-spacing: 1px; display: inline-block; margin-bottom: 28px; border: 1px solid #f5a623; }
+  h1 { font-size: 1.5rem; margin-bottom: 10px; }
+  .sub { color: #888; font-size: 0.95rem; margin-bottom: 32px; line-height: 1.5; }
+  .steps { text-align: left; background: #0a0a0a; border-radius: 12px; padding: 20px 24px; margin-bottom: 32px; }
+  .steps p { font-size: 0.85rem; color: #666; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+  .steps ol { padding-left: 18px; color: #aaa; font-size: 0.9rem; line-height: 1.8; }
+  .tiktok-btn { display: inline-flex; align-items: center; gap: 10px; background: #fff; color: #000; font-weight: bold; font-size: 1rem; padding: 14px 32px; border-radius: 50px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 20px rgba(255,255,255,0.1); width: 100%; justify-content: center; }
+  .tiktok-btn:hover { transform: scale(1.03); box-shadow: 0 6px 28px rgba(255,255,255,0.18); }
+  .tiktok-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+  .note { margin-top: 20px; font-size: 0.78rem; color: #444; line-height: 1.5; }
+  .back { margin-top: 28px; color: #555; font-size: 0.85rem; }
+  .back a { color: #f5a623; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">I-llumin-A</div>
+  <h1>Connect with TikTok</h1>
+  <p class="sub">Authorize I-llumin-A to post AI-generated videos to your TikTok account via the Content Posting API.</p>
+
+  <div class="steps">
+    <p>How it works</p>
+    <ol>
+      <li>Click the button below</li>
+      <li>Log in to TikTok and review permissions</li>
+      <li>Tap <strong>Authorize</strong> to grant access</li>
+      <li>You'll be redirected back here when done</li>
+    </ol>
+  </div>
+
+  <a class="tiktok-btn" id="tiktok-auth-btn" href="#" onclick="startTikTokAuth(); return false;">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.75a8.22 8.22 0 004.79 1.52V6.79a4.85 4.85 0 01-1.02-.1z" fill="#000"/>
+    </svg>
+    Login with TikTok
+  </a>
+
+  <p class="note">
+    I-llumin-A only requests permission to publish videos on your behalf.<br>
+    We never access your messages, followers, or personal data.
+  </p>
+  <div class="back"><a href="index.html">← Back to home</a> &nbsp;·&nbsp; <a href="privacy.html">Privacy Policy</a> &nbsp;·&nbsp; <a href="terms.html">Terms of Service</a></div>
+</div>
+
+<script>
+  // TikTok OAuth 2.0 — replace CLIENT_KEY and REDIRECT_URI with your app values
+  var TIKTOK_CLIENT_KEY = "awlhi5fv3ngjugeu";
+  var REDIRECT_URI = encodeURIComponent(window.location.origin + "/i-llumin-a/callback.html");
+  var SCOPE = "video.upload,video.publish";
+  var STATE = Math.random().toString(36).substring(2, 15);
+
+  function startTikTokAuth() {
+    var url = "https://www.tiktok.com/v2/auth/authorize/"
+      + "?client_key=" + TIKTOK_CLIENT_KEY
+      + "&scope=" + SCOPE
+      + "&response_type=code"
+      + "&redirect_uri=" + REDIRECT_URI
+      + "&state=" + STATE;
+    window.location.href = url;
+  }
+
+  // Auto-populate client key if stored in localStorage
+  var storedKey = localStorage.getItem("tt_client_key");
+  if (storedKey) { TIKTOK_CLIENT_KEY = storedKey; }
+</script>
+</body>
+</html>
