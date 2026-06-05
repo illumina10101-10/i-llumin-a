@@ -121,28 +121,43 @@ def _build_prompt(real_data: dict) -> str:
         "COMPITO: Scegli IL fatto piu interessante tra quelli forniti. Spiegalo in italiano in 35-42 secondi.\n"
         "Usa SOLO fatti presenti nei dati. Non inventare nomi, statistiche o studi.\n\n"
         "STRUTTURA VOICEOVER (95-110 parole):\n"
-        "1. HOOK (3s): fatto sorprendente, max 8 parole, non iniziare con 'oggi' o 'sapevi che'\n"
+        "1. HOOK (3s): stato sorprendente o domanda provocatoria, max 8 parole. NO 'oggi' o 'sapevi che'\n"
         "2. CONTESTO (8s): quando, dove, chi - solo dati presenti sopra\n"
-        "3. FATTO CENTRALE (15s): cosa e successo esattamente, spiega il meccanismo\n"
-        "4. PERCHE CONTA OGGI (10s): cosa cambia concretamente per chi guarda\n"
-        "5. CHIUSURA (5s): invita a salvare il video\n\n"
+        "3. FATTO CENTRALE (15s): spiega il meccanismo in modo che chiunque capisca\n"
+        "4. PERCHE CONTA OGGI (10s): impatto concreto sulla vita di chi guarda\n"
+        "5. CHIUSURA ENGAGEMENT (5s): fai UNA domanda diretta che invita a commentare.\n"
+        "   Esempi: 'Tu lo sapevi? Scrivi SI o NO.' / 'Cosa ne pensi? Dimmelo.' / 'Ti ha sorpreso? Commenta.'\n"
+        "   NON usare solo 'salva questo video' — serve la domanda per i commenti.\n\n"
         "REGOLE VOCE (neural TTS italiano):\n"
         "- Numeri in lettere: 'millenovecentoquarantuno' non '1941'\n"
         "- Zero abbreviazioni\n"
         "- Frasi max 9 parole, punto dopo ogni concetto\n"
         "- Una sola pausa con '...' prima del dato piu impattante\n"
         "- MAX un '!' per video\n\n"
-        "Hashtag: esattamente 5. Usa sempre #Shorts + #imparaconme, poi scegli 3 tra questi in base al topic:\n"
-        "- scienza/scoperte: #scienza #facts #AITech\n"
+        "TITOLO YOUTUBE: max 55 char. Usa formato curiosity gap:\n"
+        "- Per scienza: 'La scoperta che cambia [X]' o '[Anno]: quando [fatto shock]'\n"
+        "- Per storia: 'Il giorno in cui [evento] cambiò tutto'\n"
+        "- Per notizie: 'Perché [fatto] interessa anche te'\n"
+        "NON mettere #Shorts nel titolo JSON (lo aggiunge il sistema).\n\n"
+        "DESCRIPTION (primi 100 char visibili nel feed): inizia con UNA domanda che spinge a commentare.\n"
+        "Esempio: 'Lo sapevi? Lascia un commento! 👇'\n\n"
+        "CATEGORIA: indica il tipo di contenuto nel campo 'categoria':\n"
+        "- 'scienza' per scoperte scientifiche\n"
+        "- 'storia' per fatti storici\n"
+        "- 'tecnologia' per AI e tech\n"
+        "- 'attualita' per notizie\n\n"
+        "Hashtag: esattamente 5. Usa sempre #Shorts + #imparaconme, poi 3 topic-specific:\n"
+        "- scienza: #scienza #curiosita #facts\n"
         "- storia: #storia #curiosita #didyouknow\n"
-        "- notizie/attualita: #notizie #viral #fyp\n"
-        "- tecnologia/AI: #AITech #tecnologia #futuro\n\n"
+        "- tecnologia: #AITech #tecnologia #futuro\n"
+        "- attualita: #notizie #viral #fyp\n\n"
         "Rispondi SOLO con JSON valido su una riga, zero markdown:\n"
-        '{"trending_topic":"nome breve del fatto","tipo":"storia|scienza|notizia","hook":"max 8 parole",'
-        '"voiceover":"testo 95-110 parole regole rispettate",'
+        '{"trending_topic":"nome breve","tipo":"storia|scienza|notizia|tecnologia","categoria":"scienza|storia|tecnologia|attualita",'
+        '"hook":"max 8 parole","voiceover":"testo 95-110 parole con domanda finale per commenti",'
         '"pexels_keywords":["kw1_english","kw2_english","kw3_english"],'
-        '"title_youtube":"titolo max 55 char","description":"CTA max 100 char",'
-        '"hashtags":["#Shorts","#imparaconme","#tag1","#tag2"]}'
+        '"title_youtube":"titolo curiosity gap max 55 char senza #Shorts",'
+        '"description":"domanda per commenti max 100 char",'
+        '"hashtags":["#Shorts","#imparaconme","#tag1","#tag2","#tag3"]}'
     )
 
 

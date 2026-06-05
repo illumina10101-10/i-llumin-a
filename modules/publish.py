@@ -231,7 +231,7 @@ def _get_youtube_credentials():
     return creds
 
 
-def publish_youtube(video_path: str, title: str, description: str) -> str | None:
+def publish_youtube(video_path: str, title: str, description: str, script: dict = None) -> str | None:
     """Pubblica su YouTube Shorts via YouTube Data API v3."""
     try:
         from googleapiclient.discovery import build
@@ -254,14 +254,21 @@ def publish_youtube(video_path: str, title: str, description: str) -> str | None
         if "#Shorts" not in yt_title and "#shorts" not in yt_title:
             yt_title = yt_title[:93] + " #Shorts"
 
+        # Categoria ottimizzata per algoritmo:
+        # 27=Education, 28=Science&Tech, 22=People&Blogs, 25=News
+        categoria = script.get("categoria", "scienza") if isinstance(script, dict) else "scienza"
+        cat_map = {"scienza": "28", "tecnologia": "28", "storia": "27", "attualita": "25"}
+        category_id = cat_map.get(categoria, "28")
+
         request = youtube.videos().insert(
             part="snippet,status",
             body={
                 "snippet": {
                     "title": yt_title,
                     "description": description[:5000],
-                    "categoryId": "22",  # People & Blogs
+                    "categoryId": category_id,
                     "defaultLanguage": "it",
+                    "tags": script.get("hashtags", []) if isinstance(script, dict) else [],
                 },
                 "status": {
                     "privacyStatus": "public",
@@ -296,7 +303,12 @@ def publish_all(video_path: str, script: dict) -> dict:
     title = script.get("title_youtube", script.get("trending_topic", "Video"))
     description = script.get("description", "")
     hashtags = " ".join(script.get("hashtags", []))
-    caption = f"{description}\n{hashtags}".strip()
+
+    # Description ottimizzata per engagement:
+    # - Prima riga: domanda visibile nel feed (spinge commenti)
+    # - Seconda riga: CTA salvataggio
+    # - Poi hashtags
+    caption = f"{description}\nSalva per rileggerlo dopo 💾\n\n{hashtags}".strip()
 
     results = {}
 
@@ -307,7 +319,7 @@ def publish_all(video_path: str, script: dict) -> dict:
     results["instagram"] = publish_instagram(video_path, caption)
 
     logger.info("=== Pubblicazione YouTube ===")
-    results["youtube"] = publish_youtube(video_path, title, caption)
+    results["youtube"] = publish_youtube(video_path, title, caption, script=script)
 
     published = sum(1 for v in results.values() if v)
     logger.info("Pubblicato su %d/3 piattaforme: %s", published, results)
