@@ -89,26 +89,54 @@ def _save_used_topic(topic: str):
         f.write(f"{today_prefix}|{topic}\n")
 
 
+_STOPWORDS = {
+    "del","della","dello","di","il","la","lo","le","gli","una","uno","un",
+    "the","and","of","in","at","by","for","with","from","that","this",
+    "was","were","has","have","had","been","not","are","its","their",
+    "also","after","when","which","what","who","how","per","con","che",
+    "nel","nei","tra","sul","sulla","sulle","sui","agli","alle","alla",
+}
+
 def _filter_used(data: dict, used_keywords: list[str]) -> dict:
-    """Rimuove fisicamente dal JSON i topic già usati."""
+    """
+    Rimuove dal JSON i topic già usati oggi.
+    Estrae parole significative (>3 char, non stopword, non numeri) da ogni topic usato.
+    Filtra qualsiasi entry che contiene ALMENO UNA di quelle parole.
+    """
     if not used_keywords:
         return data
-    import copy
+    import copy, re
     d = copy.deepcopy(data)
-    for kw in used_keywords:
-        key_words = kw.split()[:2]
-        first_word = key_words[0] if key_words else ""
-        if not first_word:
-            continue
-        d["scienza"] = [
-            s for s in d["scienza"]
-            if first_word not in s.get("titolo", "").lower()
-            and first_word not in s.get("abstract", "").lower()
-        ]
-        d["accadde_oggi"] = [
-            e for e in d["accadde_oggi"]
-            if first_word not in e.get("fatto", "").lower()
-        ]
+
+    # Estrai tutte le keyword significative da tutti i topic usati
+    all_keywords = set()
+    for topic in used_keywords:
+        words = re.sub(r'\d+', '', topic.lower()).split()
+        for w in words:
+            w = w.strip(".,;:!?-")
+            if len(w) > 3 and w not in _STOPWORDS:
+                all_keywords.add(w)
+
+    if not all_keywords:
+        return d
+
+    def _contains_any(text: str) -> bool:
+        text_lower = text.lower()
+        return any(kw in text_lower for kw in all_keywords)
+
+    d["scienza"] = [
+        s for s in d["scienza"]
+        if not _contains_any(s.get("titolo", "") + " " + s.get("abstract", ""))
+    ]
+    d["accadde_oggi"] = [
+        e for e in d["accadde_oggi"]
+        if not _contains_any(e.get("fatto", "") + " " + e.get("soggetto", ""))
+    ]
+    d["notizie"] = [
+        n for n in d["notizie"]
+        if not _contains_any(n.get("titolo", ""))
+    ]
+    logger.info("Filtro topic usati: keywords=%s", sorted(all_keywords))
     return d
 
 
@@ -146,18 +174,25 @@ def _build_prompt(real_data: dict) -> str:
         "- 'storia' per fatti storici\n"
         "- 'tecnologia' per AI e tech\n"
         "- 'attualita' per notizie\n\n"
-        "Hashtag: esattamente 5. Usa sempre #Shorts + #imparaconme, poi 3 topic-specific:\n"
-        "- scienza: #scienza #curiosita #facts\n"
-        "- storia: #storia #curiosita #didyouknow\n"
-        "- tecnologia: #AITech #tecnologia #futuro\n"
-        "- attualita: #notizie #viral #fyp\n\n"
-        "Rispondi SOLO con JSON valido su una riga, zero markdown:\n"
-        '{"trending_topic":"nome breve","tipo":"storia|scienza|notizia|tecnologia","categoria":"scienza|storia|tecnologia|attualita",'
-        '"hook":"max 8 parole","voiceover":"testo 95-110 parole con domanda finale per commenti",'
-        '"pexels_keywords":["kw1_english","kw2_english","kw3_english"],'
-        '"title_youtube":"titolo curiosity gap max 55 char senza #Shorts",'
-        '"description":"domanda per commenti max 100 char",'
-        '"hashtags":["#Shorts","#imparaconme","#tag1","#tag2","#tag3"]}'
+        "HASHTAG — scegli esattamente 5, TUTTI obbligatori:\n"
+        "Sempre: #Shorts e #imparaconme\n"
+        "Poi 3 specifici in base al topic (NON usare #tag1 o placeholder):\n"
+        "Se scienza: #scienza #curiosita #facts\n"
+        "Se storia: #storia #curiosita #didyouknow\n"
+        "Se tecnologia/AI: #AITech #tecnologia #futuro\n"
+        "Se attualita/notizie: #notizie #viral #fyp\n\n"
+        "ESEMPIO OUTPUT COMPLETO per un topic di scienza:\n"
+        '{"trending_topic":"Webb trova metano su cometa","tipo":"scienza","categoria":"scienza",'
+        '"hook":"Una cometa da fuori il sistema solare porta metano.","voiceover":"[95-110 parole]",'
+        '"pexels_keywords":["comet space","telescope","astronomy"],'
+        '"title_youtube":"Il telescopio Webb scopre metano su una cometa straniera",'
+        '"description":"Lo sapevi? Scrivi SI o NO nei commenti! \U0001f447",'
+        '"hashtags":["#Shorts","#imparaconme","#scienza","#curiosita","#facts"]}\n\n'
+        "ESEMPIO per storia:\n"
+        '{"hashtags":["#Shorts","#imparaconme","#storia","#curiosita","#didyouknow"]}\n\n'
+        "ESEMPIO per tecnologia:\n"
+        '{"hashtags":["#Shorts","#imparaconme","#AITech","#tecnologia","#futuro"]}\n\n'
+        "Ora genera il JSON completo per il topic scelto. SOLO JSON su una riga, zero markdown:"
     )
 
 
@@ -172,6 +207,42 @@ def _parse_json(text: str) -> dict:
     if m:
         text = m.group(0)
     return json.loads(text)
+
+
+_HASHTAG_BY_CAT = {
+    "scienza":    ["#scienza", "#curiosita", "#facts"],
+    "storia":     ["#storia", "#curiosita", "#didyouknow"],
+    "tecnologia": ["#AITech", "#tecnologia", "#futuro"],
+    "attualita":  ["#notizie", "#viral", "#fyp"],
+}
+
+def _normalize_script(s: dict) -> dict:
+    """Garantisce 5 hashtag validi indipendente dal modello."""
+    cat = (s.get("categoria") or s.get("tipo") or "scienza").lower()
+    if cat in ("notizia", "news"):
+        cat = "attualita"
+    if cat not in _HASHTAG_BY_CAT:
+        cat = "scienza"
+    s["categoria"] = cat
+
+    tags = s.get("hashtags") or []
+    # tieni solo hashtag veri (no placeholder tipo #tag1)
+    tags = [t for t in tags if isinstance(t, str) and t.startswith("#")
+            and not re.match(r"#tag\d", t.lower()) and len(t) > 2]
+
+    base = ["#Shorts", "#imparaconme"]
+    forced = base + _HASHTAG_BY_CAT[cat]
+    # unisci: prima i forced, poi extra del modello, dedup, max 5
+    seen, final = set(), []
+    for t in forced + tags:
+        tl = t.lower()
+        if tl not in seen:
+            seen.add(tl)
+            final.append(t)
+        if len(final) == 5:
+            break
+    s["hashtags"] = final
+    return s
 
 
 def generate_with_openrouter(prompt: str) -> dict:
@@ -206,8 +277,9 @@ def generate_with_openrouter(prompt: str) -> dict:
             if not choices:
                 continue
             text = choices[0]["message"]["content"].strip()
-            result = _parse_json(text)
-            logger.info("Script generato con %s. Topic: %s", model, result.get("trending_topic"))
+            result = _normalize_script(_parse_json(text))
+            logger.info("Script generato con %s. Topic: %s | hashtags: %s",
+                        model, result.get("trending_topic"), result.get("hashtags"))
             return result
         except Exception as e:
             logger.warning("Modello %s fallito: %s", model, e)
@@ -224,7 +296,7 @@ def generate_with_claude(prompt: str) -> dict:
         tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}],
     )
     text = next((b.text for b in reversed(response.content) if hasattr(b, "text")), None)
-    return _parse_json(text)
+    return _normalize_script(_parse_json(text))
 
 
 def generate_script(niche: str = "", affiliate_product: str = "", affiliate_url: str = "") -> dict:
