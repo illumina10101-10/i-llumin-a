@@ -3,6 +3,7 @@ Pubblica il video su TikTok, Instagram Reels e YouTube Shorts.
 Ogni piattaforma ha il proprio fallback in caso di errore.
 """
 import os
+import re
 import json
 import time
 import logging
@@ -304,11 +305,28 @@ def publish_all(video_path: str, script: dict) -> dict:
     description = script.get("description", "")
     hashtags = " ".join(script.get("hashtags", []))
 
-    # Description ottimizzata per engagement:
-    # - Prima riga: domanda visibile nel feed (spinge commenti)
-    # - Seconda riga: CTA salvataggio
-    # - Poi hashtags
-    caption = f"{description}\nSalva per rileggerlo dopo 💾\n\n{hashtags}".strip()
+    # Estrai la domanda finale del voiceover (stessa del video) per la description
+    voiceover = script.get("voiceover", "")
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', voiceover) if s.strip()]
+    final_question = ""
+    for s in reversed(sentences):
+        if "?" in s:
+            final_question = s
+            break
+
+    # Description engagement:
+    # 1. domanda parlata del video (genera commenti e condivisione)
+    # 2. descrizione/CTA del modello
+    # 3. salva
+    # 4. hashtags (tutti e 5, cliccabili)
+    parts = []
+    if final_question:
+        parts.append(final_question)
+    if description and description not in final_question:
+        parts.append(description)
+    parts.append("Salva e condividi se ti è stato utile 💾")
+    parts.append(hashtags)
+    caption = "\n\n".join(parts).strip()
 
     results = {}
 
