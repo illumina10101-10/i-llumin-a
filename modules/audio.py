@@ -10,46 +10,56 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-async def _tts_async(text: str, output_path: str, voice: str) -> None:
+async def _tts_async(text: str, output_path: str, voice: str) -> list:
+    """Genera MP3 e cattura i WordBoundary reali (timing preciso per ogni parola)."""
     import edge_tts
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(output_path)
+    communicate = edge_tts.Communicate(text, voice, rate="+8%")
+    boundaries = []
+    with open(output_path, "wb") as f:
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                f.write(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                # offset e duration in tick da 100ns -> secondi
+                boundaries.append({
+                    "start": chunk["offset"] / 10_000_000,
+                    "end": (chunk["offset"] + chunk["duration"]) / 10_000_000,
+                    "word": chunk["text"],
+                })
+    return boundaries
+
+
+# memorizza i boundaries dell'ultima sintesi per generate_captions
+_LAST_BOUNDARIES: list = []
 
 
 def generate_voiceover(text: str, output_path: str, voice: str = "it-IT-GiuseppeNeural") -> str:
     """Genera MP3 voiceover. Restituisce il path del file."""
+    global _LAST_BOUNDARIES
     logger.info("Generando voiceover con voce %s...", voice)
-    asyncio.run(_tts_async(text, output_path, voice))
+    _LAST_BOUNDARIES = asyncio.run(_tts_async(text, output_path, voice))
     size_kb = Path(output_path).stat().st_size // 1024
-    logger.info("Voiceover salvato: %s (%d KB)", output_path, size_kb)
+    logger.info("Voiceover salvato: %s (%d KB, %d word boundaries)",
+                output_path, size_kb, len(_LAST_BOUNDARIES))
     return output_path
 
 
 def generate_captions(audio_path: str, output_ass: str, voiceover_text: str = "") -> str:
     """
     Genera captions ASS word-by-word.
-    Prova faster-whisper; se non disponibile usa gen_captions.py (timing stimato).
+    Priorità: 1) WordBoundary reali da edge-tts (sync perfetto) 2) timing stimato.
     """
-    # Prova faster-whisper se disponibile
-    try:
-        from faster_whisper import WhisperModel
-        logger.info("Generando captions con faster-whisper...")
-        model = WhisperModel("base", device="cpu", compute_type="int8")
-        segments, _ = model.transcribe(audio_path, word_timestamps=True, language="it")
-        words = []
-        for seg in segments:
-            if seg.words:
-                for w in seg.words:
-                    words.append({"start": w.start, "end": w.end, "word": w.word.strip()})
-        _write_ass(words, output_ass)
-        logger.info("Captions (whisper): %s (%d parole)", output_ass, len(words))
-        return output_ass
-    except ImportError:
-        pass
-    except Exception as e:
-        logger.warning("faster-whisper fallito: %s", e)
+    # 1. Boundaries reali catturati durante la sintesi TTS (timing esatto)
+    if _LAST_BOUNDARIES:
+        words = [{"start": b["start"], "end": b["end"], "word": b["word"]}
+                 for b in _LAST_BOUNDARIES if b["word"].strip()]
+        if words:
+            _write_ass(words, output_ass)
+            logger.info("Captions (edge-tts WordBoundary REALE): %s (%d parole)",
+                        output_ass, len(words))
+            return output_ass
 
-    # Fallback: timing stimato dal testo del voiceover
+    # 2. Fallback: timing stimato dal testo
     if voiceover_text:
         logger.info("Generando captions (timing stimato dal testo)...")
         duration = get_audio_duration(audio_path)
@@ -57,7 +67,7 @@ def generate_captions(audio_path: str, output_ass: str, voiceover_text: str = ""
         logger.info("Captions (stimate): %s", output_ass)
         return output_ass
 
-    raise RuntimeError("Impossibile generare captions: né faster-whisper né voiceover_text disponibili")
+    raise RuntimeError("Impossibile generare captions: né boundaries né voiceover_text")
 
 
 def _write_ass_from_text(text: str, duration: float, output_path: str) -> None:
