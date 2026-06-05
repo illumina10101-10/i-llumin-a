@@ -132,7 +132,11 @@ def _build_prompt(real_data: dict) -> str:
         "- Frasi max 9 parole, punto dopo ogni concetto\n"
         "- Una sola pausa con '...' prima del dato piu impattante\n"
         "- MAX un '!' per video\n\n"
-        "Hashtag: esattamente 4. Usa #Shorts + #imparaconme + 2 specifici del topic.\n\n"
+        "Hashtag: esattamente 5. Usa sempre #Shorts + #imparaconme, poi scegli 3 tra questi in base al topic:\n"
+        "- scienza/scoperte: #scienza #facts #AITech\n"
+        "- storia: #storia #curiosita #didyouknow\n"
+        "- notizie/attualita: #notizie #viral #fyp\n"
+        "- tecnologia/AI: #AITech #tecnologia #futuro\n\n"
         "Rispondi SOLO con JSON valido su una riga, zero markdown:\n"
         '{"trending_topic":"nome breve del fatto","tipo":"storia|scienza|notizia","hook":"max 8 parole",'
         '"voiceover":"testo 95-110 parole regole rispettate",'
