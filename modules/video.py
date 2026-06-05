@@ -52,7 +52,15 @@ def fetch_pexels_videos(keywords: list[str], api_key: str, work_dir: Path, max_c
                 url = files[0]["link"]
                 dest = work_dir / f"clip_{vid_id}.mp4"
                 logger.info("Download clip Pexels: %s → %s", url[:60], dest.name)
-                urllib.request.urlretrieve(url, dest)
+                # usa requests con headers per evitare 403 su CDN
+                dl = requests.get(url, headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Referer": "https://www.pexels.com/"
+                }, timeout=60, stream=True)
+                dl.raise_for_status()
+                with open(dest, "wb") as f:
+                    for chunk in dl.iter_content(65536):
+                        f.write(chunk)
                 clips.append(dest)
         except Exception as e:
             logger.warning("Errore Pexels keyword '%s': %s", keyword, e)
@@ -61,16 +69,22 @@ def fetch_pexels_videos(keywords: list[str], api_key: str, work_dir: Path, max_c
     return clips
 
 
-def fetch_pollinations_images(keywords: list[str], work_dir: Path, count: int = 5) -> list[Path]:
+def fetch_pollinations_images(keywords: list[str], work_dir: Path, count: int = 5, session=None) -> list[Path]:
     """Genera immagini AI da Pollinations come fallback."""
+    import urllib.parse
+    if session is None:
+        import requests as _req
+        session = _req.Session()
     images = []
     for i, kw in enumerate(keywords[:count]):
         prompt = f"cinematic {kw} vertical portrait 9:16 photorealistic"
-        url = POLLINATIONS_API.format(prompt=urllib.request.quote(prompt))
+        url = POLLINATIONS_API.format(prompt=urllib.parse.quote(prompt))
         dest = work_dir / f"img_{i}.jpg"
         try:
             logger.info("Download immagine Pollinations: %s", kw)
-            urllib.request.urlretrieve(url, dest)
+            r = session.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+            r.raise_for_status()
+            dest.write_bytes(r.content)
             images.append(dest)
         except Exception as e:
             logger.warning("Errore Pollinations '%s': %s", kw, e)
@@ -238,7 +252,7 @@ def build_video(
 
     if not clips:
         logger.warning("Nessun clip Pexels trovato, uso Pollinations.ai come fallback...")
-        images = fetch_pollinations_images(keywords, work_dir)
+        images = fetch_pollinations_images(keywords, work_dir, session=requests.Session())
         clips = images_to_clips(images, work_dir)
 
     if not clips:

@@ -44,7 +44,7 @@ def load_config() -> dict:
 
     return {
         "niche": os.environ.get("NICHE") or data.get("selected_niche") or "tecnologia",
-        "voice": os.environ.get("VOICE") or data.get("voice") or "it-IT-ElsaNeural",
+        "voice": os.environ.get("VOICE") or data.get("voice") or "it-IT-GiuseppeNeural",
         "affiliate_url": os.environ.get("AFFILIATE_URL") or data.get("affiliate_url") or "",
         "affiliate_product": os.environ.get("AFFILIATE_PRODUCT") or data.get("affiliate_product") or "",
     }
