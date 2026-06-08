@@ -17,9 +17,8 @@ logger = logging.getLogger(__name__)
 
 def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
     """
-    Pubblica su TikTok via Content Posting API v2.
-    Modalità: Direct Post (se approvata) oppure Upload to Inbox.
-    Restituisce l'URL del video o None in caso di errore.
+    Carica video nell'INBOX TikTok come bozza (scope video.upload).
+    L'utente apre TikTok e pubblica con 1 tap. Restituisce stato testuale.
     """
     import requests
 
@@ -29,27 +28,16 @@ def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
         return None
 
     video_size = Path(video_path).stat().st_size
-    caption = f"{title}\n\n{description}"[:2200]  # TikTok max 2200 char
 
-    # 1. Init upload
+    # 1. Init upload INBOX (no post_info - bozza, non pubblicazione diretta)
     try:
         r = requests.post(
-            "https://open.tiktokapis.com/v2/post/publish/video/init/",
+            "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/",
             headers={
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json; charset=UTF-8",
             },
             json={
-                "post_info": {
-                    "title": caption,
-                    "privacy_level": "PUBLIC_TO_EVERYONE",
-                    "disable_comment": False,
-                    "disable_duet": False,
-                    "disable_stitch": False,
-                    "video_cover_timestamp_ms": 1000,
-                    "brand_content_toggle": False,
-                    "brand_organic_toggle": False,
-                },
                 "source_info": {
                     "source": "FILE_UPLOAD",
                     "video_size": video_size,
@@ -63,8 +51,11 @@ def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
         data = r.json().get("data", {})
         publish_id = data.get("publish_id")
         upload_url = data.get("upload_url")
+        if not upload_url:
+            logger.error("TikTok inbox init: risposta inattesa %s", r.json())
+            return None
     except Exception as e:
-        logger.error("TikTok init upload fallito: %s", e)
+        logger.error("TikTok inbox init fallito: %s", e)
         return None
 
     # 2. Upload video
@@ -86,29 +77,8 @@ def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
         logger.error("TikTok upload video fallito: %s", e)
         return None
 
-    # 3. Poll stato pubblicazione
-    for attempt in range(12):
-        time.sleep(10)
-        try:
-            status_r = requests.post(
-                "https://open.tiktokapis.com/v2/post/publish/status/fetch/",
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json; charset=UTF-8"},
-                json={"publish_id": publish_id},
-                timeout=15,
-            )
-            status = status_r.json().get("data", {}).get("status", "")
-            if status == "PUBLISH_COMPLETE":
-                url = f"https://www.tiktok.com/@me/video/{publish_id}"
-                logger.info("TikTok pubblicato: %s", url)
-                return url
-            elif status in ("FAILED", "PUBLISH_FAILED"):
-                logger.error("TikTok pubblicazione fallita: %s", status_r.json())
-                return None
-        except Exception as e:
-            logger.warning("TikTok status poll errore (tentativo %d): %s", attempt + 1, e)
-
-    logger.error("TikTok: timeout in attesa della pubblicazione")
-    return None
+    logger.info("TikTok: video in inbox (bozza). Publish ID: %s", publish_id)
+    return "inbox"  # segnala: bozza pronta, pubblica manuale su app
 
 
 # ── Instagram Reels ──────────────────────────────────────────────────────────
