@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
     """
-    Pubblica DIRETTAMENTE su TikTok (Direct Post, scope video.publish).
-    Video va online pronto con caption. Restituisce 'posted' o None.
+    Carica video nell'INBOX TikTok come bozza (scope video.upload).
+    Arriva nelle notifiche app TikTok -> apri -> pubblica. Restituisce 'inbox'.
     """
     import requests
 
@@ -28,25 +28,16 @@ def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
         return None
 
     video_size = Path(video_path).stat().st_size
-    caption = f"{title}\n{description}"[:2200]
 
-    # 1. Init DIRECT POST
+    # 1. Init INBOX (no post_info)
     try:
         r = requests.post(
-            "https://open.tiktokapis.com/v2/post/publish/video/init/",
+            "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/",
             headers={
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json; charset=UTF-8",
             },
             json={
-                "post_info": {
-                    "title": caption,
-                    "privacy_level": "SELF_ONLY",  # sandbox: solo te. Cambia a PUBLIC_TO_EVERYONE in prod
-                    "disable_comment": False,
-                    "disable_duet": False,
-                    "disable_stitch": False,
-                    "video_cover_timestamp_ms": 1000,
-                },
                 "source_info": {
                     "source": "FILE_UPLOAD",
                     "video_size": video_size,
@@ -61,10 +52,10 @@ def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
         publish_id = data.get("publish_id")
         upload_url = data.get("upload_url")
         if not upload_url:
-            logger.error("TikTok direct post init: risposta inattesa %s", r.json())
+            logger.error("TikTok inbox init: risposta inattesa %s", r.json())
             return None
     except Exception as e:
-        logger.error("TikTok direct post init fallito: %s", e)
+        logger.error("TikTok inbox init fallito: %s", e)
         return None
 
     # 2. Upload video
@@ -86,8 +77,8 @@ def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
         logger.error("TikTok upload video fallito: %s", e)
         return None
 
-    logger.info("TikTok: Direct Post avviato. Publish ID: %s", publish_id)
-    return "posted"
+    logger.info("TikTok: video in inbox. Publish ID: %s", publish_id)
+    return "inbox"
 
 
 # ── Instagram Reels ──────────────────────────────────────────────────────────
