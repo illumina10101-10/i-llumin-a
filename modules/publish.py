@@ -309,6 +309,14 @@ def publish_all(video_path: str, script: dict) -> dict:
     logger.info("=== Pubblicazione YouTube ===")
     results["youtube"] = publish_youtube(video_path, title, caption, script=script)
 
+    # Invia video + caption su Telegram per pubblicazione TikTok manuale (15 sec)
+    try:
+        from modules.notify import send_video
+        tiktok_caption = f"📱 PUBBLICA SU TIKTOK\n\n{caption}"
+        send_video(video_path, tiktok_caption)
+    except Exception as e:
+        logger.warning("Invio video Telegram fallito: %s", e)
+
     published = sum(1 for v in results.values() if v)
     logger.info("Pubblicato su %d/3 piattaforme: %s", published, results)
     return results

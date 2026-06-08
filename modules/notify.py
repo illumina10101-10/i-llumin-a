@@ -27,6 +27,28 @@ def _send(text: str) -> bool:
         return False
 
 
+def send_video(video_path: str, caption: str) -> bool:
+    """Invia il file video su Telegram con caption pronta per TikTok."""
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    if not bot_token or not chat_id:
+        return False
+    try:
+        with open(video_path, "rb") as f:
+            r = requests.post(
+                f"https://api.telegram.org/bot{bot_token}/sendVideo",
+                data={"chat_id": chat_id, "caption": caption[:1024], "parse_mode": "HTML"},
+                files={"video": f},
+                timeout=120,
+            )
+        r.raise_for_status()
+        logger.info("Video inviato su Telegram per pubblicazione TikTok manuale")
+        return True
+    except Exception as e:
+        logger.error("Telegram send_video fallito: %s", e)
+        return False
+
+
 def notify_success(script: dict, urls: dict) -> None:
     topic = script.get("trending_topic", "Video")
     tiktok_raw = urls.get("tiktok")
