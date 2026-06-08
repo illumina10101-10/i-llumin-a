@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I-llumin-A — TikTok Callback</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%23000'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-size='52' font-family='Arial,sans-serif' font-weight='bold' fill='%23f5a623'%3EIA%3C/text%3E%3C/svg%3E">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#000; color:#fff; font-family:Arial,sans-serif; min-height:100vh;
+         display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card { background:#111; border:1px solid #222; border-radius:20px; padding:40px 36px;
+          max-width:520px; width:100%; text-align:center; }
+  .logo { background:#000; color:#f5a623; font-weight:bold; font-size:1.1rem; padding:10px 18px;
+          border-radius:10px; letter-spacing:1px; display:inline-block; margin-bottom:24px; border:1px solid #f5a623; }
+  h1 { font-size:1.3rem; margin-bottom:16px; }
+  .code-box { background:#0a0a0a; border:1px solid #f5a623; border-radius:12px; padding:18px;
+              margin:20px 0; font-family:monospace; font-size:0.95rem; color:#f5a623; word-break:break-all; }
+  .copy-btn { background:#f5a623; color:#000; font-weight:bold; border:none; border-radius:10px;
+              padding:12px 24px; cursor:pointer; font-size:1rem; }
+  .copy-btn:hover { opacity:0.85; }
+  .instr { color:#888; font-size:0.9rem; margin-top:20px; line-height:1.6; }
+  .err { color:#ff4444; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">I-llumin-A</div>
+  <h1>Autorizzazione TikTok</h1>
+  <div id="content"></div>
+</div>
+<script>
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get("code");
+  var error = params.get("error");
+  var content = document.getElementById("content");
+
+  if (code) {
+    content.innerHTML =
+      '<p style="color:#4caf50">Autorizzazione riuscita! Copia questo codice:</p>' +
+      '<div class="code-box" id="code">' + code + '</div>' +
+      '<button class="copy-btn" onclick="copyCode()">Copia codice</button>' +
+      '<p class="instr">Torna al terminale, incolla il codice e premi Invio.</p>';
+  } else if (error) {
+    content.innerHTML = '<p class="err">Errore: ' + error + '</p>' +
+      '<p class="instr">' + (params.get("error_description") || "") + '</p>';
+  } else {
+    content.innerHTML = '<p class="instr">Nessun codice ricevuto. Riprova il login.</p>';
+  }
+
+  function copyCode() {
+    navigator.clipboard.writeText(code);
+    document.querySelector(".copy-btn").textContent = "Copiato!";
+  }
+</script>
+</body>
+</html>
