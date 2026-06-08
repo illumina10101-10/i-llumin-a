@@ -1,10 +1,9 @@
 """
-Ottieni il token TikTok per il bot I-llumin-A.
-Apre il browser, cattura il callback in locale, salva access_token nel .env.
-Eseguire UNA VOLTA sola: py -3 tiktok_auth.py
+Login TikTok sandbox per I-llumin-A.
+Redirect via GitHub Pages (sandbox vieta localhost). Paste manuale del codice.
+Uso: py -3 tiktok_auth.py
 """
-import os, json, secrets, webbrowser, urllib.parse, http.server, threading
-import hashlib, base64
+import os, secrets, webbrowser, urllib.parse, hashlib, base64
 import requests, truststore, certifi
 truststore.inject_into_ssl()
 from dotenv import load_dotenv
@@ -12,38 +11,18 @@ load_dotenv()
 
 CLIENT_KEY    = os.environ["TIKTOK_CLIENT_KEY"]
 CLIENT_SECRET = os.environ["TIKTOK_CLIENT_SECRET"]
-REDIRECT_URI  = "http://localhost:8080/callback"
-SCOPE         = "video.upload"
-STATE         = secrets.token_hex(16)
+REDIRECT_URI  = "https://illumina10101-10.github.io/i-llumin-a/callback.html"
+SCOPE         = "video.publish"
+STATE         = secrets.token_hex(8)
 
-# PKCE — richiesto da TikTok OAuth 2.0
+# PKCE
 CODE_VERIFIER  = secrets.token_urlsafe(64)
 CODE_CHALLENGE = base64.urlsafe_b64encode(
     hashlib.sha256(CODE_VERIFIER.encode()).digest()
 ).rstrip(b"=").decode()
 
-auth_code = None
-
-class CallbackHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        global auth_code
-        parsed = urllib.parse.urlparse(self.path)
-        params = urllib.parse.parse_qs(parsed.query)
-        if "code" in params and params.get("state", [""])[0] == STATE:
-            auth_code = params["code"][0]
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(b"<h2>Autorizzazione completata! Puoi chiudere questa finestra.</h2>")
-        else:
-            self.send_response(400)
-            self.end_headers()
-            self.wfile.write(b"Errore: state mismatch o codice mancante.")
-    def log_message(self, *args):
-        pass  # silenzia i log del server
 
 def exchange_code(code):
-    """Scambia il codice con access_token + refresh_token."""
     r = requests.post(
         "https://open.tiktokapis.com/v2/oauth/token/",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -55,43 +34,31 @@ def exchange_code(code):
             "redirect_uri": REDIRECT_URI,
             "code_verifier": CODE_VERIFIER,
         },
-        verify=certifi.where(),
-        timeout=30,
+        verify=certifi.where(), timeout=30,
     )
     return r.json()
 
+
 def save_to_env(key, value):
-    """Aggiorna una variabile nel .env senza sovrascrivere le altre."""
     env_path = os.path.join(os.path.dirname(__file__), ".env")
-    with open(env_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    updated = False
-    new_lines = []
+    lines = open(env_path, encoding="utf-8").read().splitlines()
+    out, found = [], False
     for line in lines:
         if line.startswith(f"{key}="):
-            new_lines.append(f"{key}={value}\n")
-            updated = True
+            out.append(f"{key}={value}"); found = True
         else:
-            new_lines.append(line)
-    if not updated:
-        new_lines.append(f"{key}={value}\n")
-    with open(env_path, "w", encoding="utf-8") as f:
-        f.writelines(new_lines)
+            out.append(line)
+    if not found:
+        out.append(f"{key}={value}")
+    open(env_path, "w", encoding="utf-8").write("\n".join(out) + "\n")
     print(f"  .env aggiornato: {key}=***{value[-6:]}")
+
 
 if __name__ == "__main__":
     print("=" * 55)
-    print("  I-llumin-A — Login TikTok (locale, sicuro)")
+    print("  I-llumin-A — Login TikTok Sandbox")
     print("=" * 55)
 
-    # Avvia server locale per il callback
-    server = http.server.HTTPServer(("localhost", 8080), CallbackHandler)
-    thread = threading.Thread(target=server.serve_forever)
-    thread.daemon = True
-    thread.start()
-    print("\n[1] Server locale avviato su http://localhost:8080")
-
-    # Costruisci URL di autorizzazione con PKCE
     auth_url = (
         "https://www.tiktok.com/v2/auth/authorize/"
         f"?client_key={CLIENT_KEY}"
@@ -103,38 +70,33 @@ if __name__ == "__main__":
         "&code_challenge_method=S256"
     )
 
-    print("[2] Apro il browser per il login TikTok...")
+    print("\n[1] Apro browser per login TikTok...")
+    print("    (accedi col tuo account, autorizza l'app)")
     webbrowser.open(auth_url)
-    print("[3] Accedi con il tuo account TikTok e autorizza l'app.")
-    print("    Attendo il callback...\n")
 
-    # Aspetta il codice (max 3 minuti)
-    import time
-    for _ in range(180):
-        if auth_code:
-            break
-        time.sleep(1)
+    print("\n[2] Dopo l'autorizzazione vieni rediretto a una pagina")
+    print("    che mostra un CODICE. Copialo e incollalo qui sotto.\n")
+    code = input("Incolla il codice: ").strip()
 
-    server.shutdown()
+    if not code:
+        print("[ERR] Nessun codice inserito.")
+        raise SystemExit(1)
 
-    if not auth_code:
-        print("[ERR] Timeout — nessun codice ricevuto. Riprova.")
-        exit(1)
+    # Pulisci solo se incollato URL intero (tieni il codice completo, anche con *)
+    if "code=" in code:
+        code = code.split("code=")[1].split("&")[0]
+    code = urllib.parse.unquote(code)
 
-    print(f"[OK] Codice ricevuto. Scambio con token...")
-    data = exchange_code(auth_code)
+    print("\n[3] Scambio codice con token...")
+    data = exchange_code(code)
 
     if "access_token" not in data:
-        print(f"[ERR] Errore TikTok API: {data}")
-        exit(1)
+        print(f"[ERR] TikTok API: {data}")
+        raise SystemExit(1)
 
-    access_token  = data["access_token"]
-    refresh_token = data.get("refresh_token", "")
+    save_to_env("TIKTOK_ACCESS_TOKEN", data["access_token"])
+    if data.get("refresh_token"):
+        save_to_env("TIKTOK_REFRESH_TOKEN", data["refresh_token"])
 
-    save_to_env("TIKTOK_ACCESS_TOKEN", access_token)
-    if refresh_token:
-        save_to_env("TIKTOK_REFRESH_TOKEN", refresh_token)
-
-    print("\n[OK] Token salvato nel .env!")
-    print("     La pipeline pubblichera automaticamente nell'inbox TikTok da adesso.")
+    print("\n[OK] Token salvato! Bot puo pubblicare in inbox TikTok.")
     print("=" * 55)

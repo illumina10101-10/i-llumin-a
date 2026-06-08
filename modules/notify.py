@@ -52,8 +52,10 @@ def send_video(video_path: str, caption: str) -> bool:
 def notify_success(script: dict, urls: dict) -> None:
     topic = script.get("trending_topic", "Video")
     tiktok_raw = urls.get("tiktok")
-    if tiktok_raw == "inbox":
-        tiktok = "📥 In bozza! Apri TikTok e pubblica con 1 tap"
+    if tiktok_raw == "posted":
+        tiktok = "✅ Pubblicato (privato sandbox - rendi pubblico in app)"
+    elif tiktok_raw == "inbox":
+        tiktok = "📥 In bozza! Apri TikTok e pubblica"
     elif tiktok_raw:
         tiktok = tiktok_raw
     else:
