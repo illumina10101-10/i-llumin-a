@@ -251,12 +251,37 @@ def build_video(
     if pexels_key:
         clips = fetch_pexels_videos(keywords, pexels_key, work_dir)
 
-    if not clips:
-        logger.warning("Nessun clip Pexels trovato, uso Pollinations.ai come fallback...")
-        images = fetch_pollinations_images(keywords, work_dir, session=requests.Session())
-        clips = images_to_clips(images, work_dir)
+    # Retry Pexels con keyword generiche per categoria (se le specifiche falliscono)
+    if not clips and pexels_key:
+        cat = (script.get("categoria") or "").lower()
+        generic = {
+            "scienza": ["science", "laboratory", "space", "technology"],
+            "storia": ["ancient", "history", "monument", "old documents"],
+            "tecnologia": ["technology", "computer", "futuristic", "digital"],
+            "attualita": ["city", "people", "news", "world"],
+        }.get(cat, ["nature", "abstract", "cinematic", "background"])
+        logger.warning("Pexels keyword specifiche fallite, retry generiche: %s", generic)
+        clips = fetch_pexels_videos(generic, pexels_key, work_dir)
 
+    # Fallback garantito: sfondo gradiente locale (mai fallisce, no dipendenze esterne)
     if not clips:
-        raise RuntimeError("Impossibile ottenere footage (Pexels e Pollinations falliti)")
+        logger.warning("Nessun clip remoto, genero sfondo gradiente locale.")
+        clips = [_make_gradient_clip(work_dir, audio_duration)]
 
     return assemble_video(clips, audio_path, captions_path, output_path, audio_duration, script)
+
+
+def _make_gradient_clip(work_dir: Path, duration: float) -> Path:
+    """Genera uno sfondo gradiente scuro 1080x1920 con FFmpeg. Sempre disponibile."""
+    out = work_dir / "gradient_bg.mp4"
+    dur = int(duration + 2)
+    # Sfondo scuro elegante (blu notte) - garantito su ogni versione ffmpeg
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-f", "lavfi",
+        "-i", f"color=c=0x101030:s=1080x1920:d={dur}",
+        "-t", str(dur),
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "25",
+        str(out),
+    ], check=True, capture_output=True)
+    return out
