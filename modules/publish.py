@@ -15,6 +15,36 @@ logger = logging.getLogger(__name__)
 
 # ── TikTok ──────────────────────────────────────────────────────────────────
 
+def _refresh_tiktok_token() -> str | None:
+    """Rinnova l'access token TikTok usando il refresh_token. Ritorna nuovo token o None."""
+    import requests
+    refresh = os.environ.get("TIKTOK_REFRESH_TOKEN")
+    key = os.environ.get("TIKTOK_CLIENT_KEY")
+    secret = os.environ.get("TIKTOK_CLIENT_SECRET")
+    if not (refresh and key and secret):
+        return None
+    try:
+        r = requests.post(
+            "https://open.tiktokapis.com/v2/oauth/token/",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data={
+                "client_key": key,
+                "client_secret": secret,
+                "grant_type": "refresh_token",
+                "refresh_token": refresh,
+            },
+            timeout=30,
+        )
+        data = r.json()
+        if "access_token" in data:
+            logger.info("TikTok: token rinnovato via refresh_token")
+            return data["access_token"]
+        logger.error("TikTok refresh fallito: %s", data)
+    except Exception as e:
+        logger.error("TikTok refresh errore: %s", e)
+    return None
+
+
 def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
     """
     Carica video nell'INBOX TikTok come bozza (scope video.upload).
@@ -26,6 +56,11 @@ def publish_tiktok(video_path: str, title: str, description: str) -> str | None:
     if not token:
         logger.warning("TikTok: TIKTOK_ACCESS_TOKEN non configurato, skip.")
         return None
+
+    # Refresh token (TikTok access token scade in 24h)
+    refreshed = _refresh_tiktok_token()
+    if refreshed:
+        token = refreshed
 
     video_size = Path(video_path).stat().st_size
 
