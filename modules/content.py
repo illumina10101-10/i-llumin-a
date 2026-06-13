@@ -146,21 +146,24 @@ def _build_prompt(real_data: dict) -> str:
     return (
         f"Sei il narratore di un canale YouTube italiano che spiega fatti reali. Data: {today}.\n\n"
         f"DATI REALI VERIFICATI:\n{data_json}\n\n"
-        "COMPITO: Scegli IL fatto piu interessante tra quelli forniti. Spiegalo in italiano in 35-42 secondi.\n"
+        "COMPITO: Scegli IL fatto piu SCONVOLGENTE tra quelli forniti. Un fatto solo. "
+        "Crea uno short ULTRA-CORTO da 15-20 secondi che la gente guarda fino in fondo e RIGUARDA.\n"
         "Usa SOLO fatti presenti nei dati. Non inventare nomi, statistiche o studi.\n\n"
-        "STRUTTURA VOICEOVER (95-110 parole):\n"
-        "1. HOOK (3s): stato sorprendente o domanda provocatoria, max 8 parole. NO 'oggi' o 'sapevi che'\n"
-        "2. CONTESTO (8s): quando, dove, chi - solo dati presenti sopra\n"
-        "3. FATTO CENTRALE (15s): spiega il meccanismo in modo che chiunque capisca\n"
-        "4. PERCHE CONTA OGGI (10s): impatto concreto sulla vita di chi guarda\n"
-        "5. CHIUSURA ENGAGEMENT (5s): fai UNA domanda diretta che invita a commentare.\n"
-        "   Esempi: 'Tu lo sapevi? Scrivi SI o NO.' / 'Cosa ne pensi? Dimmelo.' / 'Ti ha sorpreso? Commenta.'\n"
-        "   NON usare solo 'salva questo video' — serve la domanda per i commenti.\n\n"
+        "REGOLA D'ORO: durata corta = guardato intero = algoritmo spinge. NO riempitivi. Ogni parola conta.\n\n"
+        "STRUTTURA VOICEOVER (45-60 parole MASSIMO, 15-20 secondi):\n"
+        "1. HOOK SHOCK (2s): il fatto piu assurdo SUBITO, max 7 parole. La rivelazione, non l'introduzione.\n"
+        "   NO 'oggi', NO 'sapevi che', NO 'in questo video'. Spara il fatto shock in faccia.\n"
+        "2. SPIEGAZIONE RAPIDA (10s): 2-3 frasi che spiegano il fatto. Concrete, sorprendenti.\n"
+        "3. LOOP (3s): l'ultima frase deve collegarsi alla prima, così riguardano senza accorgersi.\n"
+        "   La fine prepara l'inizio. Esempio: se inizi 'Questo animale non muore mai', "
+        "finisci 'Ecco perche non muore mai' così il loop e perfetto.\n\n"
+        "HOOK_TEXT: testo GIGANTE da mostrare sullo schermo nei primi 2 secondi (oltre alla voce). "
+        "Max 5 parole, tutto maiuscolo, choc. Esempio: 'NON MUORE MAI' o 'BRUCIO PER 50 ANNI'.\n\n"
         "REGOLE VOCE (neural TTS italiano):\n"
         "- Numeri in lettere: 'millenovecentoquarantuno' non '1941'\n"
         "- Zero abbreviazioni\n"
-        "- Frasi max 9 parole, punto dopo ogni concetto\n"
-        "- Una sola pausa con '...' prima del dato piu impattante\n"
+        "- Frasi max 8 parole, punto dopo ogni concetto\n"
+        "- Ritmo incalzante, energico\n"
         "- MAX un '!' per video\n\n"
         "TITOLO YOUTUBE: max 55 char. Usa formato curiosity gap:\n"
         "- Per scienza: 'La scoperta che cambia [X]' o '[Anno]: quando [fatto shock]'\n"
@@ -181,17 +184,21 @@ def _build_prompt(real_data: dict) -> str:
         "Se storia: #storia #curiosita #didyouknow\n"
         "Se tecnologia/AI: #AITech #tecnologia #futuro\n"
         "Se attualita/notizie: #notizie #viral #fyp\n\n"
-        "ESEMPIO OUTPUT COMPLETO per un topic di scienza:\n"
-        '{"trending_topic":"Webb trova metano su cometa","tipo":"scienza","categoria":"scienza",'
-        '"hook":"Una cometa da fuori il sistema solare porta metano.","voiceover":"[95-110 parole]",'
+        "ESEMPIO OUTPUT COMPLETO per un topic di scienza (NOTA durata corta!):\n"
+        '{"trending_topic":"Cometa aliena con metano","tipo":"scienza","categoria":"scienza",'
+        '"hook":"Una cometa aliena ci ha portato metano.","hook_text":"COMETA ALIENA",'
+        '"voiceover":"Una cometa aliena ci ha portato metano. Viene da un altro sistema solare. '
+        'Il telescopio Webb ha trovato gas mai visti prima. Materiale di una stella lontana, ora vicino a noi. '
+        'Ecco perche questa cometa aliena e speciale.",'
         '"pexels_keywords":["comet space","telescope","astronomy"],'
-        '"title_youtube":"Il telescopio Webb scopre metano su una cometa straniera",'
+        '"title_youtube":"La cometa aliena che ci ha portato metano",'
         '"description":"Lo sapevi? Scrivi SI o NO nei commenti! \U0001f447",'
         '"hashtags":["#Shorts","#imparaconme","#scienza","#curiosita","#facts"]}\n\n'
         "ESEMPIO per storia:\n"
         '{"hashtags":["#Shorts","#imparaconme","#storia","#curiosita","#didyouknow"]}\n\n'
         "ESEMPIO per tecnologia:\n"
         '{"hashtags":["#Shorts","#imparaconme","#AITech","#tecnologia","#futuro"]}\n\n'
+        "Ricorda: voiceover 45-60 parole MAX, formato loop, hook_text gigante. "
         "Ora genera il JSON completo per il topic scelto. SOLO JSON su una riga, zero markdown:"
     )
 

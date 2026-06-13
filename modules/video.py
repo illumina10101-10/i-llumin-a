@@ -186,13 +186,29 @@ def assemble_video(
             font_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
             font_reg  = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
+        def _esc(t):
+            return t.replace("'", "").replace(":", "").replace("\\", "").replace("%", "")
+
         # Titolo safe zone: y=130 (sopra UI YouTube), branding y=1750 (sopra bottoni)
-        safe_title = script.get("trending_topic", "")[:38].replace("'", "").replace(":", "")
+        safe_title = _esc(script.get("trending_topic", ""))[:38]
+
+        # HOOK TEXT gigante centro schermo, primi 2.5s = pattern interrupt (+23% retention)
+        hook_text = _esc(script.get("hook_text", "")).upper()[:24]
+        hook_layer = ""
+        if hook_text:
+            hook_layer = (
+                f"drawtext=fontfile='{font_bold}':text='{hook_text}':"
+                f"fontcolor=yellow:fontsize=80:x=(w-text_w)/2:y=(h-text_h)/2:"
+                f"box=1:boxcolor=black@0.7:boxborderw=20:"
+                f"enable='lt(t,2.5)',"
+            )
+
         overlay = (
             f"ass={captions_path},"
+            f"{hook_layer}"
             f"drawtext=fontfile='{font_bold}':text='{safe_title}':"
             f"fontcolor=white:fontsize=46:x=(w-text_w)/2:y=130:"
-            f"box=1:boxcolor=black@0.55:boxborderw=12,"
+            f"box=1:boxcolor=black@0.55:boxborderw=12:enable='gt(t,2.5)',"
             f"drawtext=fontfile='{font_reg}':text='I-llumin-A':"
             f"fontcolor=gold:fontsize=34:x=(w-text_w)/2:y=1750"
         )
