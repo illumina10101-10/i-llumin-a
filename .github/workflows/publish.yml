@@ -44,6 +44,13 @@ jobs:
           key: used-topics-${{ github.run_id }}
           restore-keys: used-topics-
 
+      - name: Restore TikTok token cache (refresh token rotante)
+        uses: actions/cache@v4
+        with:
+          path: tiktok_token.json
+          key: tiktok-token-${{ github.run_id }}
+          restore-keys: tiktok-token-
+
       - name: Run pipeline
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

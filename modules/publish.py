@@ -15,12 +15,27 @@ logger = logging.getLogger(__name__)
 
 # ── TikTok ──────────────────────────────────────────────────────────────────
 
+_TIKTOK_CACHE = "tiktok_token.json"
+
 def _refresh_tiktok_token() -> str | None:
-    """Rinnova l'access token TikTok usando il refresh_token. Ritorna nuovo token o None."""
-    import requests
-    refresh = os.environ.get("TIKTOK_REFRESH_TOKEN")
+    """
+    Rinnova access token TikTok. Usa refresh_token da cache file (se esiste, più recente)
+    altrimenti da env. Salva il nuovo refresh_token in cache (TikTok lo ruota).
+    """
+    import requests, json as _json
     key = os.environ.get("TIKTOK_CLIENT_KEY")
     secret = os.environ.get("TIKTOK_CLIENT_SECRET")
+
+    # refresh_token: priorità al cache file (aggiornato da run precedenti)
+    refresh = None
+    try:
+        with open(_TIKTOK_CACHE, encoding="utf-8") as f:
+            refresh = _json.load(f).get("refresh_token")
+    except Exception:
+        pass
+    if not refresh:
+        refresh = os.environ.get("TIKTOK_REFRESH_TOKEN")
+
     if not (refresh and key and secret):
         return None
     try:
@@ -38,6 +53,12 @@ def _refresh_tiktok_token() -> str | None:
         data = r.json()
         if "access_token" in data:
             logger.info("TikTok: token rinnovato via refresh_token")
+            # Salva il nuovo refresh_token (TikTok lo ruota) per il prossimo run
+            try:
+                with open(_TIKTOK_CACHE, "w", encoding="utf-8") as f:
+                    _json.dump({"refresh_token": data.get("refresh_token", refresh)}, f)
+            except Exception as e:
+                logger.warning("Salvataggio cache token fallito: %s", e)
             return data["access_token"]
         logger.error("TikTok refresh fallito: %s", data)
     except Exception as e:
