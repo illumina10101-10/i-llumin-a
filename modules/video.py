@@ -8,6 +8,7 @@ import logging
 import subprocess
 import tempfile
 import urllib.request
+import requests
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
