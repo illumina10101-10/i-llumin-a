@@ -203,14 +203,22 @@ def assemble_video(
                 f"enable='lt(t,2.5)',"
             )
 
+        # CTA segui ultimi 4s: grande, giallo, lampeggia (spinge iscrizione)
+        sub_start = max(audio_duration - 4, 1)
         overlay = (
             f"ass={captions_path},"
             f"{hook_layer}"
             f"drawtext=fontfile='{font_bold}':text='{safe_title}':"
             f"fontcolor=white:fontsize=46:x=(w-text_w)/2:y=130:"
             f"box=1:boxcolor=black@0.55:boxborderw=12:enable='gt(t,2.5)',"
+            # branding piccolo persistente
             f"drawtext=fontfile='{font_reg}':text='I-llumin-A':"
-            f"fontcolor=gold:fontsize=34:x=(w-text_w)/2:y=1750"
+            f"fontcolor=gold:fontsize=30:x=(w-text_w)/2:y=1680,"
+            # CTA SEGUI finale - grande, lampeggiante
+            f"drawtext=fontfile='{font_bold}':text='SEGUI per un fatto al giorno':"
+            f"fontcolor=yellow:fontsize=42:x=(w-text_w)/2:y=1740:"
+            f"box=1:boxcolor=black@0.6:boxborderw=10:"
+            f"enable='gt(t,{sub_start:.1f})'"
         )
 
         if music_path:
