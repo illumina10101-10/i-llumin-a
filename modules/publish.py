@@ -351,7 +351,11 @@ def publish_all(video_path: str, script: dict) -> dict:
     if description and description not in final_question:
         parts.append(description)
     # Identità serie = motivo per seguire (converte view in iscritti)
-    parts.append("🔔 SEGUI: un fatto incredibile ogni giorno. Domani te ne svelo un altro.")
+    cat = script.get("categoria", "")
+    if cat == "sport":
+        parts.append("🔔 SEGUI: una giocata analizzata ogni giorno. Domani la prossima.")
+    else:
+        parts.append("🔔 SEGUI: un fatto incredibile ogni giorno. Domani te ne svelo un altro.")
     parts.append("Salva e condividi 💾")
     parts.append(hashtags)
     caption = "\n\n".join(parts).strip()

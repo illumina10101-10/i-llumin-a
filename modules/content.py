@@ -252,7 +252,8 @@ def _normalize_script(s: dict) -> dict:
     tags = [t for t in tags if isinstance(t, str) and t.startswith("#")
             and not re.match(r"#tag\d", t.lower()) and len(t) > 2]
 
-    base = ["#Shorts", "#imparaconme"]
+    # Secondo hashtag ancora per genere (#imparaconme solo per educativo, non sport)
+    base = ["#Shorts"] if cat == "sport" else ["#Shorts", "#imparaconme"]
     forced = base + _HASHTAG_BY_CAT[cat]
     # unisci: prima i forced, poi extra del modello, dedup, max 5
     seen, final = set(), []
