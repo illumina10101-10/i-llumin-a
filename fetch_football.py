@@ -36,20 +36,34 @@ def fetch():
     if not KEY:
         return {"errore": "FOOTBALL_API_KEY mancante"}
 
+    import time
+    now_ts = time.time()
     today = date.today().isoformat()
     out = {"data": today, "partite": []}
 
-    # Partite di oggi nei campionati top
+    def _upcoming(flist):
+        """Solo partite non ancora iniziate (status NS/TBD) con calcio d'inizio futuro."""
+        res = []
+        for f in flist:
+            if f["league"]["id"] not in TOP_LEAGUES:
+                continue
+            status = f["fixture"]["status"]["short"]
+            ts = f["fixture"].get("timestamp", 0)
+            if status in ("NS", "TBD") and ts > now_ts + 600:  # almeno 10 min nel futuro
+                res.append(f)
+        # ordina per orario (le piu vicine prima)
+        return sorted(res, key=lambda x: x["fixture"].get("timestamp", 0))
+
+    # Cerca partite future: oggi, poi giorni successivi
     fixtures = []
     try:
-        allf = _get("fixtures", {"date": today})
-        fixtures = [f for f in allf if f["league"]["id"] in TOP_LEAGUES]
-        # se nessuna oggi, prova domani
-        if not fixtures:
-            tomorrow = (date.today() + timedelta(days=1)).isoformat()
-            allf = _get("fixtures", {"date": tomorrow})
-            fixtures = [f for f in allf if f["league"]["id"] in TOP_LEAGUES]
-            out["data"] = tomorrow
+        for d in range(0, 4):
+            day = (date.today() + timedelta(days=d)).isoformat()
+            allf = _get("fixtures", {"date": day})
+            fixtures = _upcoming(allf)
+            if fixtures:
+                out["data"] = day
+                break
     except Exception as e:
         return {"errore": f"fixtures: {e}"}
 
