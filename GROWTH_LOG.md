@@ -54,3 +54,18 @@ Perde storia che richiede contesto. -> Niche su scienza/natura/misteri "wow".
 - Priorita topic: scienza/natura > misteri > (storia solo se nulla di meglio)
 - Titoli: vietato pattern ripetitivo
 - Fonti dati ribilanciate verso scienza bizzarra + animali
+
+---
+
+## 2026-06-23 — Pivot calcio completato + fix contenuto
+
+### Fatto
+- Genere → pronostici calcio (API-Football, Mondiale 2026)
+- Analisi VERA: forma, attacco/difesa, gol attesi, quote multiple
+- Regola quota 1.90+ (no favoriti scontati, engagement)
+- Voce teaser + analisi in descrizione
+- FIX CRITICO: solo partite non ancora giocate (status NS + kickoff futuro)
+
+### Note
+- Voce edge-tts per ora; ElevenLabs da valutare
+- Prossimo: affiliato scommesse in descrizione quando view salgono
