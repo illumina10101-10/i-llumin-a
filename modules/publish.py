@@ -354,17 +354,11 @@ def publish_all(video_path: str, script: dict) -> dict:
     parts.append(hashtags)
     caption = "\n\n".join(parts).strip()
 
+    # Solo YouTube Shorts (TikTok/Instagram rimossi per focus crescita)
     results = {}
-
-    logger.info("=== Pubblicazione TikTok ===")
-    results["tiktok"] = publish_tiktok(video_path, title, caption)
-
-    logger.info("=== Pubblicazione Instagram ===")
-    results["instagram"] = publish_instagram(video_path, caption)
-
     logger.info("=== Pubblicazione YouTube ===")
     results["youtube"] = publish_youtube(video_path, title, caption, script=script)
 
     published = sum(1 for v in results.values() if v)
-    logger.info("Pubblicato su %d/3 piattaforme: %s", published, results)
+    logger.info("Pubblicato su YouTube: %s", results.get("youtube"))
     return results

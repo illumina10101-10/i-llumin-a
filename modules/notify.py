@@ -51,27 +51,15 @@ def send_video(video_path: str, caption: str) -> bool:
 
 def notify_success(script: dict, urls: dict) -> None:
     topic = script.get("trending_topic", "Video")
-    tiktok_raw = urls.get("tiktok")
-    if tiktok_raw == "posted":
-        tiktok = "✅ Pubblicato (privato sandbox - rendi pubblico in app)"
-    elif tiktok_raw == "inbox":
-        tiktok = "📥 In bozza! Apri TikTok e pubblica"
-    elif tiktok_raw:
-        tiktok = tiktok_raw
-    else:
-        tiktok = "❌ non pubblicato"
-    instagram = urls.get("instagram") or "❌ non pubblicato"
     youtube = urls.get("youtube") or "❌ non pubblicato"
-
-    published_count = sum(1 for v in urls.values() if v)
+    hook = script.get("hook", "")
 
     msg = (
-        f"✅ <b>Video pubblicato!</b> ({published_count}/3 piattaforme)\n\n"
-        f"📌 <b>Topic:</b> {topic}\n\n"
-        f"📱 <b>TikTok:</b> {tiktok}\n"
-        f"📸 <b>Instagram:</b> {instagram}\n"
-        f"▶️ <b>YouTube:</b> {youtube}\n\n"
-        f"👁️ Analytics disponibili domani"
+        f"✅ <b>Short pubblicato!</b>\n\n"
+        f"📌 <b>Topic:</b> {topic}\n"
+        f"🪝 <b>Hook:</b> {hook}\n\n"
+        f"▶️ {youtube}\n\n"
+        f"👁️ Analytics domani in YouTube Studio"
     )
     _send(msg)
 
