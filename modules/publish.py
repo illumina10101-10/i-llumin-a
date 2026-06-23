@@ -284,7 +284,7 @@ def publish_youtube(video_path: str, title: str, description: str, script: dict 
         # Categoria ottimizzata per algoritmo:
         # 27=Education, 28=Science&Tech, 22=People&Blogs, 25=News
         categoria = script.get("categoria", "scienza") if isinstance(script, dict) else "scienza"
-        cat_map = {"scienza": "28", "tecnologia": "28", "storia": "27", "attualita": "25"}
+        cat_map = {"scienza": "28", "tecnologia": "28", "storia": "27", "attualita": "25", "sport": "17"}
         category_id = cat_map.get(categoria, "28")
 
         request = youtube.videos().insert(

@@ -235,6 +235,7 @@ _HASHTAG_BY_CAT = {
     "storia":     ["#storia", "#curiosita", "#didyouknow"],
     "tecnologia": ["#AITech", "#tecnologia", "#futuro"],
     "attualita":  ["#notizie", "#viral", "#fyp"],
+    "sport":      ["#pronostici", "#calcio", "#scommesse"],
 }
 
 def _normalize_script(s: dict) -> dict:
@@ -320,28 +321,81 @@ def generate_with_claude(prompt: str) -> dict:
     return _normalize_script(_parse_json(text))
 
 
+def _build_football_prompt(foot: dict) -> str:
+    data_json = json.dumps(foot, ensure_ascii=False)
+    return (
+        "Sei un esperto di pronostici calcio per uno short YouTube italiano. "
+        "Crei UN pronostico al giorno, energico e diretto, su una partita vera.\n\n"
+        f"PARTITE REALI DI OGGI (con quote e pronostico statistico):\n{data_json}\n\n"
+        "COMPITO: Scegli LA partita piu interessante (big match o quota succosa). "
+        "Crea uno short di 18-25 secondi con UN pronostico chiaro.\n"
+        "Usa SOLO dati reali sopra: squadre, quote, consiglio statistico. Non inventare.\n\n"
+        "STRUTTURA VOICEOVER (55-75 parole, energico da telecronista):\n"
+        "1. HOOK (3s): nome partita + carica. Es: 'Stasera Portogallo contro Uzbekistan, e c'e una quota assurda.'\n"
+        "2. ANALISI (10s): chi e favorito, la quota, perche. Usa i numeri reali.\n"
+        "3. IL PRONOSTICO (5s): di' chiaro la tua giocata e la quota. Es: 'Io vado su Portogallo vincente a uno e quattordici.'\n"
+        "4. CHIUSURA (3s): carica + invito. Es: 'Segui per il pronostico di domani.'\n\n"
+        "OBBLIGO LEGALE: includi nel voiceover, breve: 'Gioca con responsabilita, solo maggiorenni.'\n\n"
+        "HOOK_TEXT: testo gigante schermo primi 2s. La partita o la quota. Es: 'PORTOGALLO 1.14' o 'QUOTA BOMBA'.\n\n"
+        "REGOLE VOCE (TTS italiano):\n"
+        "- Numeri quote a voce: 'uno e quattordici' per 1.14, 'due e venti' per 2.20\n"
+        "- Frasi corte, ritmo da telecronaca, energico\n"
+        "- Zero abbreviazioni\n\n"
+        "TITOLO YOUTUBE max 55 char: nome partita + hook. Es: 'Portogallo-Uzbekistan: la quota che nessuno gioca'\n"
+        "DESCRIPTION: pronostico + 'Gioco responsabile 18+' + invito a seguire.\n"
+        "CATEGORIA: usa 'sport'.\n"
+        "HASHTAG esatti 5: #Shorts #pronostici #calcio #scommesse + 1 squadra (es #Portogallo)\n\n"
+        "Rispondi SOLO JSON una riga, zero markdown:\n"
+        '{"trending_topic":"Squadra1 vs Squadra2","tipo":"sport","categoria":"sport",'
+        '"hook":"frase hook max 10 parole","hook_text":"TESTO GIGANTE",'
+        '"voiceover":"testo 55-75 parole con pronostico, quota a voce, disclaimer",'
+        '"pexels_keywords":["soccer stadium","football match","soccer crowd"],'
+        '"title_youtube":"titolo max 55 char","description":"pronostico + gioco responsabile 18+ + segui",'
+        '"hashtags":["#Shorts","#pronostici","#calcio","#scommesse","#mondiale"]}'
+    )
+
+
 def generate_script(niche: str = "", affiliate_product: str = "", affiliate_url: str = "") -> dict:
-    """Entry point: fetch dati reali → genera script verificato."""
-    logger.info("Raccogliendo dati reali (Wikipedia + News + Science)...")
-    real_data = _fetch_real_content()
+    """Entry point: pronostici calcio se disponibili, altrimenti fatti scientifici."""
+    prompt = None
 
-    used = _load_used_topics()
-    if used:
-        logger.info("Topic da escludere: %s", used)
-        real_data = _filter_used(real_data, used)
-
-    prompt = _build_prompt(real_data)
-
-    if os.environ.get("ANTHROPIC_API_KEY"):
+    # 1. Prova calcio (genere principale)
+    if os.environ.get("FOOTBALL_API_KEY"):
         try:
-            script = generate_with_claude(prompt)
-            _save_used_topic(script.get("trending_topic", ""))
-            return script
+            import importlib.util, sys
+            spec = importlib.util.spec_from_file_location("fetch_football", "fetch_football.py")
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            foot = mod.fetch()
+            if foot.get("partite"):
+                logger.info("Calcio: %d partite trovate", len(foot["partite"]))
+                # escludi partite gia usate oggi
+                used = _load_used_topics()
+                foot["partite"] = [
+                    p for p in foot["partite"]
+                    if f"{p['home']} vs {p['away']}".lower() not in [u.lower() for u in used]
+                ] or foot["partite"]
+                prompt = _build_football_prompt(foot)
+            else:
+                logger.warning("Calcio: nessuna partita (%s), fallback scienza", foot.get("errore", ""))
         except Exception as e:
-            logger.warning("Claude API fallita (%s), provo OpenRouter...", e)
+            logger.warning("Fetch calcio fallito (%s), fallback scienza", e)
+
+    # 2. Fallback: fatti scientifici
+    if prompt is None:
+        logger.info("Raccogliendo dati reali (Wikipedia + Science)...")
+        real_data = _fetch_real_content()
+        used = _load_used_topics()
+        if used:
+            real_data = _filter_used(real_data, used)
+        prompt = _build_prompt(real_data)
 
     if os.environ.get("OPENROUTER_API_KEY"):
         script = generate_with_openrouter(prompt)
+        _save_used_topic(script.get("trending_topic", ""))
+        return script
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        script = generate_with_claude(prompt)
         _save_used_topic(script.get("trending_topic", ""))
         return script
 
