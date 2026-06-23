@@ -324,33 +324,42 @@ def generate_with_claude(prompt: str) -> dict:
 def _build_football_prompt(foot: dict) -> str:
     data_json = json.dumps(foot, ensure_ascii=False)
     return (
-        "Sei un esperto di pronostici calcio per uno short YouTube italiano. "
-        "Crei UN pronostico al giorno, energico e diretto, su una partita vera.\n\n"
-        f"PARTITE REALI DI OGGI (con quote e pronostico statistico):\n{data_json}\n\n"
-        "COMPITO: Scegli LA partita piu interessante (big match o quota succosa). "
-        "Crea uno short di 18-25 secondi con UN pronostico chiaro.\n"
-        "Usa SOLO dati reali sopra: squadre, quote, consiglio statistico. Non inventare.\n\n"
-        "STRUTTURA VOICEOVER (55-75 parole, energico da telecronista):\n"
-        "1. HOOK (3s): nome partita + carica. Es: 'Stasera Portogallo contro Uzbekistan, e c'e una quota assurda.'\n"
-        "2. ANALISI (10s): chi e favorito, la quota, perche. Usa i numeri reali.\n"
-        "3. IL PRONOSTICO (5s): di' chiaro la tua giocata e la quota. Es: 'Io vado su Portogallo vincente a uno e quattordici.'\n"
-        "4. CHIUSURA (3s): carica + invito. Es: 'Segui per il pronostico di domani.'\n\n"
-        "OBBLIGO LEGALE: includi nel voiceover, breve: 'Gioca con responsabilita, solo maggiorenni.'\n\n"
-        "HOOK_TEXT: testo gigante schermo primi 2s. La partita o la quota. Es: 'PORTOGALLO 1.14' o 'QUOTA BOMBA'.\n\n"
-        "REGOLE VOCE (TTS italiano):\n"
-        "- Numeri quote a voce: 'uno e quattordici' per 1.14, 'due e venti' per 2.20\n"
-        "- Frasi corte, ritmo da telecronaca, energico\n"
+        "Sei un tipster professionista di calcio per uno short YouTube italiano. "
+        "Fai analisi VERE con i dati e tiri fuori UNA giocata di valore.\n\n"
+        f"PARTITE REALI con QUOTE MULTIPLE e STATISTICHE:\n{data_json}\n\n"
+        "REGOLA QUOTA: scegli una giocata con quota tra 1.90 e 3.50 (valore + appeal). "
+        "MAI quote sotto 1.90 (favoriti scontati = noiosi, zero engagement). "
+        "Valuta TUTTI i mercati: 1X2, Over/Under 2.5, Gol Gol (BTTS), Doppia Chance. "
+        "Scegli quello che le STATISTICHE supportano meglio E ha quota appetibile.\n\n"
+        "COME RAGIONARE (usa i dati reali forniti):\n"
+        "- Forma squadre (W/L/D ultimi 5), forza attacco/difesa, gol attesi\n"
+        "- Se entrambe segnano tanto -> Gol Gol o Over 2.5\n"
+        "- Se underdog in forma -> Doppia Chance sull'underdog (quota alta)\n"
+        "- Se una domina ma quota 1X2 bassa -> cerca valore in Over o handicap\n\n"
+        "DIVISIONE CONTENUTO:\n"
+        "VOCE (breve, 40-55 parole): hook partita + LA giocata + quota + 'analisi completa in descrizione'. "
+        "NON spiegare tutto a voce. Crea curiosita per far leggere la descrizione.\n"
+        "DESCRIZIONE (qui l'analisi vera): perche questa giocata. Cita forma, gol attesi, statistiche reali. "
+        "3-4 frasi di analisi concreta + la quota + gioco responsabile 18+.\n\n"
+        "STRUTTURA VOCE:\n"
+        "1. HOOK (3s): partita + tensione. Es: 'Inghilterra-Ghana nasconde una quota che pochi vedono.'\n"
+        "2. LA GIOCATA (5s): di' chiaro mercato + quota. Es: 'Io vado Gol Gol a uno e novantacinque.'\n"
+        "3. RIMANDO (3s): 'Tutta l'analisi e nei dettagli qui sotto. Leggi prima di giocare.'\n"
+        "4. CTA (2s): 'Segui per la giocata di domani.'\n\n"
+        "HOOK_TEXT: testo gigante schermo primi 2s. La giocata o quota. Es: 'GOL GOL 1.95' o 'QUOTA 2.40'.\n\n"
+        "REGOLE VOCE TTS italiano:\n"
+        "- Quote a voce in lettere: 'uno e novantacinque' per 1.95, 'due e quaranta' per 2.40\n"
+        "- Ritmo da tipster sicuro, energico ma credibile\n"
         "- Zero abbreviazioni\n\n"
-        "TITOLO YOUTUBE max 55 char: nome partita + hook. Es: 'Portogallo-Uzbekistan: la quota che nessuno gioca'\n"
-        "DESCRIPTION: pronostico + 'Gioco responsabile 18+' + invito a seguire.\n"
-        "CATEGORIA: usa 'sport'.\n"
-        "HASHTAG esatti 5: #Shorts #pronostici #calcio #scommesse + 1 squadra (es #Portogallo)\n\n"
+        "TITOLO YOUTUBE max 55 char: partita + mercato curioso. Es: 'Inghilterra-Ghana: la quota Gol Gol da giocare'\n"
+        "CATEGORIA: 'sport'. HASHTAG 5: #Shorts #pronostici #calcio #scommesse + 1 a tema\n\n"
         "Rispondi SOLO JSON una riga, zero markdown:\n"
         '{"trending_topic":"Squadra1 vs Squadra2","tipo":"sport","categoria":"sport",'
-        '"hook":"frase hook max 10 parole","hook_text":"TESTO GIGANTE",'
-        '"voiceover":"testo 55-75 parole con pronostico, quota a voce, disclaimer",'
-        '"pexels_keywords":["soccer stadium","football match","soccer crowd"],'
-        '"title_youtube":"titolo max 55 char","description":"pronostico + gioco responsabile 18+ + segui",'
+        '"hook":"frase hook max 10 parole","hook_text":"GIOCATA QUOTA",'
+        '"voiceover":"40-55 parole: hook + giocata + quota a voce + rimando descrizione + segui",'
+        '"pexels_keywords":["soccer stadium","football match night","soccer crowd"],'
+        '"title_youtube":"titolo max 55 char con mercato",'
+        '"description":"ANALISI: 3-4 frasi con forma/gol/statistiche reali. Poi: Quota X.XX. Gioco responsabile 18+. Segui per la giocata di domani.",'
         '"hashtags":["#Shorts","#pronostici","#calcio","#scommesse","#mondiale"]}'
     )
 

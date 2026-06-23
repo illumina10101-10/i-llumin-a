@@ -53,32 +53,58 @@ def fetch():
     except Exception as e:
         return {"errore": f"fixtures: {e}"}
 
-    # Prendi max 5 partite, arricchisci con quote + pronostico
-    for f in fixtures[:5]:
+    # Prendi max 4 partite, arricchisci con quote multiple + analisi
+    for f in fixtures[:4]:
         fid = f["fixture"]["id"]
         home = f["teams"]["home"]["name"]
         away = f["teams"]["away"]["name"]
         league = f["league"]["name"]
-        match = {"home": home, "away": away, "league": league, "ora": f["fixture"]["date"][11:16]}
+        match = {"home": home, "away": away, "league": league,
+                 "ora": f["fixture"]["date"][11:16], "quote": {}}
 
-        # Quote 1X2 (bookmaker medio)
+        # Quote multiple in UNA chiamata (tutti i bet del primo bookmaker)
         try:
-            odds = _get("odds", {"fixture": fid, "bet": 1})  # bet 1 = Match Winner
-            if odds:
-                vals = odds[0]["bookmakers"][0]["bets"][0]["values"]
-                match["quote"] = {v["value"]: v["odd"] for v in vals}
+            odds = _get("odds", {"fixture": fid})
+            if odds and odds[0].get("bookmakers"):
+                bets = odds[0]["bookmakers"][0]["bets"]
+                bm = {b["id"]: b["values"] for b in bets}
+                # 1X2
+                if 1 in bm:
+                    match["quote"]["1X2"] = {v["value"]: v["odd"] for v in bm[1]}
+                # Over/Under 2.5 (bet 5)
+                if 5 in bm:
+                    ou = {v["value"]: v["odd"] for v in bm[5] if v["value"] in ("Over 2.5", "Under 2.5")}
+                    if ou:
+                        match["quote"]["OverUnder"] = ou
+                # Both Teams Score (bet 8)
+                if 8 in bm:
+                    match["quote"]["GolGol"] = {v["value"]: v["odd"] for v in bm[8]}
+                # Double Chance (bet 12)
+                if 12 in bm:
+                    match["quote"]["DoppiaChance"] = {v["value"]: v["odd"] for v in bm[12]}
         except Exception:
             pass
 
-        # Pronostico statistico api-football
+        # Analisi statistica completa
         try:
             pred = _get("predictions", {"fixture": fid})
             if pred:
-                p = pred[0]["predictions"]
-                match["pronostico"] = {
-                    "vincente": p.get("winner", {}).get("name"),
-                    "consiglio": p.get("advice"),
-                    "percentuali": p.get("percent"),
+                p = pred[0]
+                pr = p["predictions"]
+                comp = p.get("comparison", {})
+                match["analisi"] = {
+                    "vincente_atteso": pr.get("winner", {}).get("name"),
+                    "consiglio_api": pr.get("advice"),
+                    "percent_1X2": pr.get("percent"),
+                    "gol_attesi": {"casa": pr.get("goals", {}).get("home"),
+                                   "ospite": pr.get("goals", {}).get("away")},
+                    "under_over": pr.get("under_over"),
+                    "forma_casa": p["teams"]["home"].get("league", {}).get("form", "")[-5:],
+                    "forma_ospite": p["teams"]["away"].get("league", {}).get("form", "")[-5:],
+                    "forza_attacco": {"casa": comp.get("att", {}).get("home"),
+                                      "ospite": comp.get("att", {}).get("away")},
+                    "forza_difesa": {"casa": comp.get("def", {}).get("home"),
+                                     "ospite": comp.get("def", {}).get("away")},
                 }
         except Exception:
             pass
