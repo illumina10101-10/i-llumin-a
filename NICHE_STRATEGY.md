@@ -1,35 +1,39 @@
 # NICHE STRATEGY — I-llumin-A
 
-## Nicchia attuale (problema)
-"Fatti reali educativi" generico — scienza + storia + notizie misti.
-**Difetto SMM:** troppo largo. L'algoritmo YouTube non riesce a costruire un'identità
-di canale -> non sa a chi servire i video -> distribuzione debole.
+## PIVOT 2026-06-23 → Pronostici calcio
 
-## Nicchia scelta (focus)
-**"Fatti scientifici che sembrano impossibili ma sono veri"**
-Angolo: scienza + natura + spazio con il taglio "non ci crederai ma è reale".
+### Genere: pronostici calcio con quote reali
+Fonte: API-Football (free 100/giorno) — partite, quote 1X2, pronostico statistico.
+Ora: Mondiale 2026 in corso = contenuto caldo ogni giorno.
 
-### Perché funziona
-- **Ricercabile**: la gente cerca "fatti incredibili", "lo sapevi che"
-- **Appassionante**: meraviglia = emozione forte = condivisione
-- **Sostenibile**: fonti infinite (ScienceDaily, Wikipedia) ogni giorno fatti nuovi
-- **Riprova sociale**: il video più visto del canale è il polpo (animale/natura, 25s)
+### Perché (decisione SMM)
+- Pubblico FEDELE: chi segue scommesse torna ogni giorno
+- Motivo chiaro per iscriversi: pick giornaliera
+- Monetizzabile davvero: affiliati scommesse (goal €200/sett)
+- Dati 100% automatizzati e reali (no invenzioni)
 
-### Target audience
-Curiosi 16-35, scroll serale, amano "wow facts" da condividere in chat.
+### Formato (15-25s)
+1. Hook: la partita + carica
+2. Analisi: favorito + quota reale
+3. Pronostico: la giocata + quota a voce
+4. Disclaimer: "Gioco responsabile, 18+"
+5. CTA: segui per il pronostico di domani
 
-## Tono di voce
-- Amico che ti svela un segreto, non professore
-- Ritmo incalzante, energico
-- Seconda persona ("tu", "non crederai")
-- Meraviglia genuina
+### Target
+Appassionati calcio/scommesse 18-45, controllano pick prima delle partite.
 
-## Formato vincente (dai dati 2026)
-- **Durata 15-20s** (watch% è tutto; polpo 25s ha vinto)
-- **Hook shock frame 1** (testo gigante + voce)
-- **Loop**: ultima frase aggancia la prima
-- **1 fatto solo** (no riempitivi)
+### Rischi gestiti
+- Disclaimer ADM/18+ obbligatorio in ogni video
+- YouTube categoria Sport (17)
+- Niente incitamento, solo analisi
 
-## Pivot futuro se non cresce
-Se in 14 giorni < crescita: stringere ancora su SOLO natura/animali
-(il polpo suggerisce che è il sotto-tema più forte).
+### Fallback
+Se nessuna partita (pausa campionati senza Mondiale): scienza/natura "wow".
+
+### Voce
+edge-tts GiuseppeNeural per ora (energico, telecronaca).
+TODO: valutare ElevenLabs per naturalezza (altro giorno).
+
+### Prossimi test
+- Misurare view/iscritti pronostici vs vecchi video scienza
+- Se converte: aggiungere affiliato scommesse in description (monetizzazione)
