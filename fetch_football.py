@@ -7,8 +7,12 @@ Output: JSON con partite reali, quote reali, forma squadre.
 import os, json, sys
 from datetime import date, timedelta
 
-import requests, truststore, certifi
-truststore.inject_into_ssl()
+import requests, certifi
+try:
+    import truststore  # solo Windows locale (Python 3.15 SSL)
+    truststore.inject_into_ssl()
+except ImportError:
+    pass  # cloud Linux: certifi basta
 from dotenv import load_dotenv
 load_dotenv()
 
