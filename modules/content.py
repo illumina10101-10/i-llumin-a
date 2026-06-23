@@ -31,7 +31,7 @@ def _fetch_real_content() -> dict:
             timeout=10
         )
         events = r.json().get("events", [])
-        events_sorted = sorted(events, key=lambda e: len(e.get("pages", [])), reverse=True)[:5]
+        events_sorted = sorted(events, key=lambda e: len(e.get("pages", [])), reverse=True)[:3]
         for e in events_sorted:
             pages = e.get("pages", [])
             subject = pages[0]["titles"]["normalized"] if pages else ""
@@ -53,16 +53,22 @@ def _fetch_real_content() -> dict:
     except Exception as ex:
         logger.warning("Google News RSS fallito: %s", ex)
 
-    # 3. ScienceDaily RSS
-    try:
-        r = session.get("https://www.sciencedaily.com/rss/top/science.xml", timeout=10)
-        tree = ET.fromstring(r.content)
-        for item in tree.findall(".//item")[:5]:
-            title = item.findtext("title", "")
-            desc = re.sub(r"<[^>]+>", "", item.findtext("description", ""))[:300]
-            result["scienza"].append({"titolo": title, "abstract": desc})
-    except Exception as ex:
-        logger.warning("ScienceDaily RSS fallito: %s", ex)
+    # 3. ScienceDaily — top science + strange/offbeat + animali (filone "wow" che converte)
+    science_feeds = [
+        "https://www.sciencedaily.com/rss/strange_offbeat.xml",   # bizzarro = piu virale
+        "https://www.sciencedaily.com/rss/plants_animals.xml",    # animali (filone polpo)
+        "https://www.sciencedaily.com/rss/top/science.xml",
+    ]
+    for feed in science_feeds:
+        try:
+            r = session.get(feed, timeout=10)
+            tree = ET.fromstring(r.content)
+            for item in tree.findall(".//item")[:4]:
+                title = item.findtext("title", "")
+                desc = re.sub(r"<[^>]+>", "", item.findtext("description", ""))[:300]
+                result["scienza"].append({"titolo": title, "abstract": desc})
+        except Exception as ex:
+            logger.warning("ScienceDaily feed %s fallito: %s", feed, ex)
 
     return result
 
@@ -149,6 +155,14 @@ def _build_prompt(real_data: dict) -> str:
         "COMPITO: Scegli IL fatto piu SCONVOLGENTE tra quelli forniti. Un fatto solo. "
         "Crea uno short ULTRA-CORTO da 15-20 secondi che la gente guarda fino in fondo e RIGUARDA.\n"
         "Usa SOLO fatti presenti nei dati. Non inventare nomi, statistiche o studi.\n\n"
+        "PRIORITA SCELTA TOPIC (i dati del canale dicono cosa funziona):\n"
+        "1. SCIENZA e NATURA shock (animali assurdi, spazio, corpo umano) — categoria 'scienza'\n"
+        "2. MISTERI e fatti inspiegabili/disastri curiosi — alta curiosita\n"
+        "3. SOLO se niente di meglio: fatti storici (ma evita storia oscura e poco nota)\n"
+        "EVITA: politici minori, battaglie sconosciute, fatti che richiedono contesto storico.\n"
+        "PREFERISCI: cose che fanno dire 'COSA?! non lo sapevo' a chiunque, senza prerequisiti.\n\n"
+        "VIETATO nel titolo: NON iniziare MAI con 'Il giorno in cui'. Varia ogni titolo. "
+        "Usa formati diversi: domanda, numero shock, affermazione assurda.\n\n"
         "REGOLA D'ORO: durata corta = guardato intero = algoritmo spinge. NO riempitivi. Ogni parola conta.\n\n"
         "STRUTTURA VOICEOVER (45-60 parole MASSIMO, 15-20 secondi):\n"
         "1. HOOK SHOCK (2s): il fatto piu assurdo SUBITO, max 7 parole. La rivelazione, non l'introduzione.\n"
