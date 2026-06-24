@@ -16,6 +16,7 @@ flow = InstalledAppFlow.from_client_secrets_file(
         "https://www.googleapis.com/auth/youtube.upload",
         "https://www.googleapis.com/auth/youtube.readonly",
         "https://www.googleapis.com/auth/yt-analytics.readonly",
+        "https://www.googleapis.com/auth/youtube",  # gestione: cancellare video
     ],
 )
 creds = flow.run_local_server(port=8765, open_browser=True)
