@@ -76,28 +76,39 @@ def fetch():
         match = {"home": home, "away": away, "league": league,
                  "ora": f["fixture"]["date"][11:16], "quote": {}}
 
-        # Quote multiple in UNA chiamata (tutti i bet del primo bookmaker)
+        # Mercati leggibili in italiano (id api-football -> nome)
+        MERCATI = {
+            1: "Esito 1X2", 5: "Over/Under Gol", 6: "Over/Under 1° Tempo",
+            8: "Gol Gol", 12: "Doppia Chance", 13: "Vincente 1° Tempo",
+            9: "Handicap", 21: "Pari/Dispari Gol", 7: "Primo/Secondo Tempo",
+            45: "Calci d'Angolo", 80: "Tiri in Porta", 85: "Fuorigioco",
+        }
+        # Costruisci lista GIOCATE con quota >= 1.90 (floor in CODICE, non solo prompt)
+        giocate = []
         try:
             odds = _get("odds", {"fixture": fid})
             if odds and odds[0].get("bookmakers"):
                 bets = odds[0]["bookmakers"][0]["bets"]
-                bm = {b["id"]: b["values"] for b in bets}
-                # 1X2
-                if 1 in bm:
-                    match["quote"]["1X2"] = {v["value"]: v["odd"] for v in bm[1]}
-                # Over/Under 2.5 (bet 5)
-                if 5 in bm:
-                    ou = {v["value"]: v["odd"] for v in bm[5] if v["value"] in ("Over 2.5", "Under 2.5")}
-                    if ou:
-                        match["quote"]["OverUnder"] = ou
-                # Both Teams Score (bet 8)
-                if 8 in bm:
-                    match["quote"]["GolGol"] = {v["value"]: v["odd"] for v in bm[8]}
-                # Double Chance (bet 12)
-                if 12 in bm:
-                    match["quote"]["DoppiaChance"] = {v["value"]: v["odd"] for v in bm[12]}
+                for b in bets:
+                    mname = MERCATI.get(b["id"])
+                    if not mname:
+                        continue
+                    for v in b["values"]:
+                        try:
+                            q = float(v["odd"])
+                        except (ValueError, TypeError):
+                            continue
+                        # SOLO quote appetibili 1.90 - 4.50
+                        if 1.90 <= q <= 4.50:
+                            giocate.append({
+                                "mercato": mname,
+                                "selezione": v["value"],
+                                "quota": v["odd"],
+                            })
         except Exception:
             pass
+        # ordina per quota crescente (le piu probabili prima)
+        match["giocate_valore"] = sorted(giocate, key=lambda x: float(x["quota"]))[:12]
 
         # Analisi statistica completa
         try:
