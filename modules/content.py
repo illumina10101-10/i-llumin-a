@@ -372,26 +372,40 @@ def _build_football_prompt(foot: dict) -> str:
     )
 
 
+def _attach_logos(script: dict, partite: list) -> dict:
+    """Aggancia loghi della partita scelta dal modello (per overlay video)."""
+    topic = (script.get("trending_topic") or "").lower()
+    for p in partite:
+        if p["home"].lower() in topic or p["away"].lower() in topic:
+            script["home_logo"] = p.get("home_logo", "")
+            script["away_logo"] = p.get("away_logo", "")
+            script["home_name"] = p["home"]
+            script["away_name"] = p["away"]
+            break
+    return script
+
+
 def generate_script(niche: str = "", affiliate_product: str = "", affiliate_url: str = "") -> dict:
     """Entry point: pronostici calcio se disponibili, altrimenti fatti scientifici."""
     prompt = None
+    partite = []
 
     # 1. Prova calcio (genere principale)
     if os.environ.get("FOOTBALL_API_KEY"):
         try:
-            import importlib.util, sys
+            import importlib.util
             spec = importlib.util.spec_from_file_location("fetch_football", "fetch_football.py")
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
             foot = mod.fetch()
             if foot.get("partite"):
                 logger.info("Calcio: %d partite trovate", len(foot["partite"]))
-                # escludi partite gia usate oggi
                 used = _load_used_topics()
                 foot["partite"] = [
                     p for p in foot["partite"]
                     if f"{p['home']} vs {p['away']}".lower() not in [u.lower() for u in used]
                 ] or foot["partite"]
+                partite = foot["partite"]
                 prompt = _build_football_prompt(foot)
             else:
                 logger.warning("Calcio: nessuna partita (%s), fallback scienza", foot.get("errore", ""))
@@ -407,13 +421,15 @@ def generate_script(niche: str = "", affiliate_product: str = "", affiliate_url:
             real_data = _filter_used(real_data, used)
         prompt = _build_prompt(real_data)
 
+    script = None
     if os.environ.get("OPENROUTER_API_KEY"):
         script = generate_with_openrouter(prompt)
-        _save_used_topic(script.get("trending_topic", ""))
-        return script
-    if os.environ.get("ANTHROPIC_API_KEY"):
+    elif os.environ.get("ANTHROPIC_API_KEY"):
         script = generate_with_claude(prompt)
-        _save_used_topic(script.get("trending_topic", ""))
-        return script
+    if script is None:
+        raise RuntimeError("Nessuna API key configurata")
 
-    raise RuntimeError("Nessuna API key configurata")
+    if partite:
+        script = _attach_logos(script, partite)
+    _save_used_topic(script.get("trending_topic", ""))
+    return script

@@ -221,6 +221,30 @@ def assemble_video(
             f"enable='gt(t,{sub_start:.1f})'"
         )
 
+        # LOGHI SQUADRE: scarica e mostra card VS nei primi 4s (identita visiva partita)
+        home_logo_url = script.get("home_logo", "") if script else ""
+        away_logo_url = script.get("away_logo", "") if script else ""
+        logo_h = logo_a = None
+        if home_logo_url and away_logo_url:
+            try:
+                for url, name in [(home_logo_url, "logo_h.png"), (away_logo_url, "logo_a.png")]:
+                    rr = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
+                    rr.raise_for_status()
+                    (tmp / name).write_bytes(rr.content)
+                logo_h, logo_a = tmp / "logo_h.png", tmp / "logo_a.png"
+            except Exception as e:
+                logger.warning("Download loghi fallito: %s", e)
+
+        if logo_h and logo_a:
+            lh = str(logo_h).replace("\\", "/")
+            la = str(logo_a).replace("\\", "/")
+            # logo casa sinistra, ospite destra, alto schermo, primi 4 secondi
+            overlay = (
+                f"{overlay}[base];"
+                f"movie='{lh}',scale=260:260[hl];[base][hl]overlay=110:380:enable='lt(t,4)'[b1];"
+                f"movie='{la}',scale=260:260[al];[b1][al]overlay=W-370:380:enable='lt(t,4)'"
+            )
+
         if music_path:
             audio_filter = (
                 "[1:a]volume=1.0[voice];"

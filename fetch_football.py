@@ -74,7 +74,9 @@ def fetch():
         away = f["teams"]["away"]["name"]
         league = f["league"]["name"]
         match = {"home": home, "away": away, "league": league,
-                 "ora": f["fixture"]["date"][11:16], "quote": {}}
+                 "ora": f["fixture"]["date"][11:16], "quote": {},
+                 "home_logo": f["teams"]["home"].get("logo", ""),
+                 "away_logo": f["teams"]["away"].get("logo", "")}
 
         # Mercati leggibili in italiano (id api-football -> nome)
         MERCATI = {
