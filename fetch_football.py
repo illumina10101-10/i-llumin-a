@@ -81,16 +81,23 @@ def fetch():
         # Mercati leggibili in italiano (id api-football -> nome)
         MERCATI = {
             1: "Esito 1X2", 5: "Over/Under Gol", 6: "Over/Under 1° Tempo",
-            8: "Gol Gol", 12: "Doppia Chance", 13: "Vincente 1° Tempo",
-            9: "Handicap", 21: "Pari/Dispari Gol", 7: "Primo/Secondo Tempo",
-            45: "Calci d'Angolo", 80: "Tiri in Porta", 85: "Fuorigioco",
+            26: "Over/Under 2° Tempo", 8: "Gol Gol", 12: "Doppia Chance",
+            13: "Vincente 1° Tempo", 9: "Handicap", 21: "Pari/Dispari Gol",
+            16: "Multigol Casa", 17: "Multigol Ospite",
+            38: "Numero Gol Esatto", 40: "Gol Esatti Casa", 41: "Gol Esatti Ospite",
+            42: "Gol Esatti 2° Tempo", 49: "Over + Gol Gol", 24: "Esito + Gol Gol",
+            45: "Calci d'Angolo", 85: "Calci d'Angolo (3 esiti)",
+            80: "Cartellini Over/Under", 164: "Fuorigioco Totali",
+            87: "Tiri in Porta", 211: "Tiri Totali",
         }
         # Costruisci lista GIOCATE con quota >= 1.90 (floor in CODICE, non solo prompt)
         giocate = []
         try:
             odds = _get("odds", {"fixture": fid})
             if odds and odds[0].get("bookmakers"):
-                bets = odds[0]["bookmakers"][0]["bets"]
+                # scegli il bookmaker con PIU mercati (es. Bet365 = 106 vs altri 12)
+                bk = max(odds[0]["bookmakers"], key=lambda b: len(b["bets"]))
+                bets = bk["bets"]
                 for b in bets:
                     mname = MERCATI.get(b["id"])
                     if not mname:
@@ -110,7 +117,7 @@ def fetch():
         except Exception:
             pass
         # ordina per quota crescente (le piu probabili prima)
-        match["giocate_valore"] = sorted(giocate, key=lambda x: float(x["quota"]))[:12]
+        match["giocate_valore"] = sorted(giocate, key=lambda x: float(x["quota"]))[:15]
 
         # Analisi statistica completa
         try:
